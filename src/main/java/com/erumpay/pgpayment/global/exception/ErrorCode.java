@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "Invalid request."),
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication is required."),
     PG_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PG_PAYMENT_NOT_FOUND", "PG payment transaction was not found."),
     DUPLICATE_IDEMPOTENCY_KEY(HttpStatus.CONFLICT, "DUPLICATE_IDEMPOTENCY_KEY", "Idempotency key already exists."),
     LEDGER_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "LEDGER_SAVE_FAILED", "Failed to save PG payment ledger."),

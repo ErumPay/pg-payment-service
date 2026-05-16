@@ -9,9 +9,6 @@ public record PgPaymentDetailResponse(
         Long pgTxnId,
         Long originalTxnId,
         Long payPaymentId,
-        Long holdTxnId,
-        String idempotencyKey,
-        String billingKeyMasked,
         Long merchantId,
         Long amount,
         PgTxnType txnType,
@@ -26,17 +23,13 @@ public record PgPaymentDetailResponse(
         LocalDateTime approvedAt,
         LocalDateTime processedAt,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 
     public static PgPaymentDetailResponse from(PgPaymentLedger ledger) {
         return new PgPaymentDetailResponse(
                 ledger.getPgTxnId(),
                 ledger.getOriginalTxnId(),
                 ledger.getPayPaymentId(),
-                ledger.getHoldTxnId(),
-                ledger.getIdempotencyKey(),
-                mask(ledger.getBillingKey()),
                 ledger.getMerchantId(),
                 ledger.getAmount(),
                 ledger.getTxnType(),
@@ -51,16 +44,6 @@ public record PgPaymentDetailResponse(
                 ledger.getApprovedAt(),
                 ledger.getProcessedAt(),
                 ledger.getCreatedAt(),
-                ledger.getUpdatedAt()
-        );
-    }
-
-    private static String mask(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        int visibleLength = Math.min(4, value.length());
-        return "*".repeat(Math.max(0, value.length() - visibleLength))
-                + value.substring(value.length() - visibleLength);
+                ledger.getUpdatedAt());
     }
 }
