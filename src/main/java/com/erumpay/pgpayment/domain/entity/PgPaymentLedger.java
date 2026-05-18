@@ -29,10 +29,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(
         name = "pg_payment_ledger",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_pg_payment_ledger_pay_payment", columnNames = "pay_payment_id"),
                 @UniqueConstraint(name = "uk_pg_payment_ledger_idempotency", columnNames = "idempotency_key")
         },
         indexes = {
+                @Index(name = "idx_pg_payment_ledger_pay_payment", columnList = "pay_payment_id"),
                 @Index(name = "idx_pg_payment_ledger_original", columnList = "original_txn_id"),
                 @Index(name = "idx_pg_payment_ledger_hold", columnList = "hold_txn_id"),
                 @Index(name = "idx_pg_payment_ledger_merchant_created", columnList = "merchant_id, created_at"),
@@ -115,4 +115,69 @@ public class PgPaymentLedger {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public void updateCardCompany(String cardCompany) {
+        this.cardCompany = cardCompany;
+    }
+
+    public void approve(String pgApprovalNumber, String cardApprovalNumber, LocalDateTime approvedAt) {
+        this.status = PgPaymentStatus.APPROVED;
+        this.pgApprovalNumber = pgApprovalNumber;
+        this.cardApprovalNumber = cardApprovalNumber;
+        this.rejectReason = null;
+        this.failureCode = null;
+        this.failureMessage = null;
+        this.approvedAt = approvedAt;
+        this.processedAt = approvedAt;
+    }
+
+    public void reject(String rejectReason, LocalDateTime processedAt) {
+        this.status = PgPaymentStatus.REJECTED;
+        this.pgApprovalNumber = null;
+        this.cardApprovalNumber = null;
+        this.rejectReason = rejectReason;
+        this.failureCode = null;
+        this.failureMessage = null;
+        this.approvedAt = null;
+        this.processedAt = processedAt;
+    }
+
+    public void cancel(String pgApprovalNumber, String cardApprovalNumber, LocalDateTime processedAt) {
+        this.status = PgPaymentStatus.CANCELLED;
+        this.pgApprovalNumber = pgApprovalNumber;
+        this.cardApprovalNumber = cardApprovalNumber;
+        this.rejectReason = null;
+        this.failureCode = null;
+        this.failureMessage = null;
+        this.approvedAt = null;
+        this.processedAt = processedAt;
+    }
+
+    public void voidHold(String pgApprovalNumber, String cardApprovalNumber, LocalDateTime processedAt) {
+        this.status = PgPaymentStatus.VOIDED;
+        this.pgApprovalNumber = pgApprovalNumber;
+        this.cardApprovalNumber = cardApprovalNumber;
+        this.rejectReason = null;
+        this.failureCode = null;
+        this.failureMessage = null;
+        this.approvedAt = null;
+        this.processedAt = processedAt;
+    }
+
+    public void fail(String failureCode, String failureMessage, LocalDateTime processedAt) {
+        this.status = PgPaymentStatus.FAILED;
+        this.pgApprovalNumber = null;
+        this.cardApprovalNumber = null;
+        this.rejectReason = null;
+        this.failureCode = failureCode;
+        this.failureMessage = failureMessage;
+        this.approvedAt = null;
+        this.processedAt = processedAt;
+    }
+
+    public void markRecoveryRequired(String failureMessage) {
+        this.failureCode = "LEDGER_RECOVERY_REQUIRED";
+        this.failureMessage = failureMessage;
+        this.retryCount = this.retryCount + 1;
+    }
 }

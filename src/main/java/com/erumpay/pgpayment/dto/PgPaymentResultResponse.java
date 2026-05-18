@@ -7,39 +7,37 @@ import java.time.LocalDateTime;
 
 public record PgPaymentResultResponse(
         Long pgTxnId,
+        Long originalTxnId,
         Long payPaymentId,
         Long merchantId,
-        Long amount,
         PgTxnType txnType,
         PgPaymentStatus status,
+        Long amount,
         String pgApprovalNumber,
-        String cardCompany,
         String cardApprovalNumber,
         String rejectReason,
         String failureCode,
         String failureMessage,
         LocalDateTime approvedAt,
-        LocalDateTime processedAt,
-        LocalDateTime createdAt
+        LocalDateTime processedAt
 ) {
 
     public static PgPaymentResultResponse from(PgPaymentLedger ledger) {
         return new PgPaymentResultResponse(
                 ledger.getPgTxnId(),
+                ledger.getOriginalTxnId(),
                 ledger.getPayPaymentId(),
                 ledger.getMerchantId(),
-                ledger.getAmount(),
                 ledger.getTxnType(),
                 ledger.getStatus(),
+                ledger.getAmount(),
                 ledger.getPgApprovalNumber(),
-                ledger.getCardCompany(),
                 ledger.getCardApprovalNumber(),
                 ledger.getRejectReason(),
                 ledger.getFailureCode(),
                 ledger.getFailureMessage(),
                 ledger.getApprovedAt(),
-                ledger.getProcessedAt(),
-                ledger.getCreatedAt()
+                ledger.getProcessedAt()
         );
     }
 }
