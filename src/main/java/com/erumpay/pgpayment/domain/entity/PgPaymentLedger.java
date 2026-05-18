@@ -1,5 +1,6 @@
 package com.erumpay.pgpayment.domain.entity;
 
+import com.erumpay.pgpayment.domain.enums.PgFailureCode;
 import com.erumpay.pgpayment.domain.enums.PgPaymentStatus;
 import com.erumpay.pgpayment.domain.enums.PgTxnType;
 import jakarta.persistence.Column;
@@ -26,19 +27,15 @@ import org.hibernate.annotations.UpdateTimestamp;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Entity
-@Table(
-        name = "pg_payment_ledger",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_pg_payment_ledger_idempotency", columnNames = "idempotency_key")
-        },
-        indexes = {
-                @Index(name = "idx_pg_payment_ledger_pay_payment", columnList = "pay_payment_id"),
-                @Index(name = "idx_pg_payment_ledger_original", columnList = "original_txn_id"),
-                @Index(name = "idx_pg_payment_ledger_hold", columnList = "hold_txn_id"),
-                @Index(name = "idx_pg_payment_ledger_merchant_created", columnList = "merchant_id, created_at"),
-                @Index(name = "idx_pg_payment_ledger_status", columnList = "status")
-        }
-)
+@Table(name = "pg_payment_ledger", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_pg_payment_ledger_idempotency", columnNames = "idempotency_key")
+}, indexes = {
+        @Index(name = "idx_pg_payment_ledger_pay_payment", columnList = "pay_payment_id"),
+        @Index(name = "idx_pg_payment_ledger_original", columnList = "original_txn_id"),
+        @Index(name = "idx_pg_payment_ledger_hold", columnList = "hold_txn_id"),
+        @Index(name = "idx_pg_payment_ledger_merchant_created", columnList = "merchant_id, created_at"),
+        @Index(name = "idx_pg_payment_ledger_status", columnList = "status")
+})
 public class PgPaymentLedger {
 
     @Id
@@ -73,11 +70,7 @@ public class PgPaymentLedger {
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(
-            name = "status",
-            nullable = false,
-            columnDefinition = "ENUM('REQUESTED','APPROVED','REJECTED','FAILED','CANCELLED','VOIDED')"
-    )
+    @Column(name = "status", nullable = false, columnDefinition = "ENUM('REQUESTED','APPROVED','REJECTED','FAILED','CANCELLED','VOIDED')")
     private PgPaymentStatus status = PgPaymentStatus.REQUESTED;
 
     @Column(name = "pg_approval_number", length = 50)
@@ -176,7 +169,7 @@ public class PgPaymentLedger {
     }
 
     public void markRecoveryRequired(String failureMessage) {
-        this.failureCode = "LEDGER_RECOVERY_REQUIRED";
+        this.failureCode = PgFailureCode.LEDGER_RECOVERY_REQUIRED.name();
         this.failureMessage = failureMessage;
         this.retryCount = this.retryCount + 1;
     }

@@ -35,8 +35,7 @@ public class PgPaymentQueryController {
     @GetMapping("/payments/{pgTxnId}/result")
     public PgPaymentResultResponse getPaymentResult(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
-            @PathVariable @Positive Long pgTxnId
-    ) {
+            @PathVariable @Positive Long pgTxnId) {
         validateAuthorization(authorization);
         return pgPaymentQueryService.getPaymentResult(pgTxnId);
     }
@@ -44,8 +43,7 @@ public class PgPaymentQueryController {
     @GetMapping("/payments/{pgTxnId}")
     public PgPaymentDetailResponse getPaymentDetail(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
-            @PathVariable @Positive Long pgTxnId
-    ) {
+            @PathVariable @Positive Long pgTxnId) {
         validateAuthorization(authorization);
         return pgPaymentQueryService.getPaymentDetail(pgTxnId);
     }
@@ -60,17 +58,16 @@ public class PgPaymentQueryController {
             @RequestParam(required = false) @Min(0) Long minAmount,
             @RequestParam(required = false) @Min(0) Long maxAmount,
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
-    ) {
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         validateAuthorization(authorization);
+        validateSearchRange(from, to, minAmount, maxAmount);
         PgPaymentLedgerSearchCondition condition = new PgPaymentLedgerSearchCondition(
                 from,
                 to,
                 merchantId,
                 status,
                 minAmount,
-                maxAmount
-        );
+                maxAmount);
         return pgPaymentQueryService.getMerchantPayments(merchantId, condition, page, size);
     }
 
@@ -84,23 +81,35 @@ public class PgPaymentQueryController {
             @RequestParam(required = false) @Min(0) Long minAmount,
             @RequestParam(required = false) @Min(0) Long maxAmount,
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
-    ) {
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         validateAuthorization(authorization);
+        validateSearchRange(from, to, minAmount, maxAmount);
         PgPaymentLedgerSearchCondition condition = new PgPaymentLedgerSearchCondition(
                 from,
                 to,
                 merchantId,
                 status,
                 minAmount,
-                maxAmount
-        );
+                maxAmount);
         return pgPaymentQueryService.getAdminPayments(condition, page, size);
     }
 
     private void validateAuthorization(String authorization) {
         if (authorization == null || authorization.isBlank() || !authorization.startsWith("Bearer ")) {
             throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization header must be a Bearer token.");
+        }
+        String token = authorization.substring("Bearer ".length()).trim();
+        if (token.isEmpty()) {
+            throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization header must include a Bearer token.");
+        }
+    }
+
+    private void validateSearchRange(LocalDate from, LocalDate to, Long minAmount, Long maxAmount) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "`from` must be before or equal to `to`.");
+        }
+        if (minAmount != null && maxAmount != null && minAmount > maxAmount) {
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "`minAmount` must be <= `maxAmount`.");
         }
     }
 }

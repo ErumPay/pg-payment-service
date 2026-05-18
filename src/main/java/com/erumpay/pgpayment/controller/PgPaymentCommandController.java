@@ -34,8 +34,7 @@ public class PgPaymentCommandController {
     public PgPaymentResultResponse authorize(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @Valid @RequestBody PgPaymentAuthRequest request
-    ) {
+            @Valid @RequestBody PgPaymentAuthRequest request) {
         validateAuthorization(authorization);
         validateIdempotencyKey(idempotencyKey);
         return pgPaymentCommandService.authorize(request, authorization, idempotencyKey);
@@ -45,8 +44,7 @@ public class PgPaymentCommandController {
     public PgPaymentResultResponse authorizeOnly(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @Valid @RequestBody PgPaymentAuthOnlyRequest request
-    ) {
+            @Valid @RequestBody PgPaymentAuthOnlyRequest request) {
         validateAuthorization(authorization);
         validateIdempotencyKey(idempotencyKey);
         return pgPaymentCommandService.authorizeOnly(request, authorization, idempotencyKey);
@@ -57,8 +55,7 @@ public class PgPaymentCommandController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @PathVariable @Positive Long pgTxnId,
-            @Valid @RequestBody PgPaymentCancelRequest request
-    ) {
+            @Valid @RequestBody PgPaymentCancelRequest request) {
         validateAuthorization(authorization);
         validateIdempotencyKey(idempotencyKey);
         return pgPaymentCommandService.cancel(pgTxnId, request, authorization, idempotencyKey);
@@ -69,8 +66,7 @@ public class PgPaymentCommandController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @PathVariable @Positive Long pgTxnId,
-            @Valid @RequestBody PgPaymentVoidRequest request
-    ) {
+            @Valid @RequestBody PgPaymentVoidRequest request) {
         validateAuthorization(authorization);
         validateIdempotencyKey(idempotencyKey);
         return pgPaymentCommandService.voidHold(pgTxnId, request, authorization, idempotencyKey);
@@ -79,6 +75,10 @@ public class PgPaymentCommandController {
     private void validateAuthorization(String authorization) {
         if (authorization == null || authorization.isBlank() || !authorization.startsWith("Bearer ")) {
             throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization header must be a Bearer token.");
+        }
+        String token = authorization.substring("Bearer ".length()).trim();
+        if (token.isEmpty()) {
+            throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization header must include a Bearer token.");
         }
     }
 
