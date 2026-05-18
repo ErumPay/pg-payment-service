@@ -20,6 +20,12 @@ public interface PgPaymentLedgerRepository extends JpaRepository<PgPaymentLedger
 
     boolean existsByIdempotencyKey(String idempotencyKey);
 
+    boolean existsByOriginalTxnIdAndTxnTypeAndStatus(
+            Long originalTxnId,
+            PgTxnType txnType,
+            PgPaymentStatus status
+    );
+
     Page<PgPaymentLedger> findByMerchantId(Long merchantId, Pageable pageable);
 
     @Query("""
