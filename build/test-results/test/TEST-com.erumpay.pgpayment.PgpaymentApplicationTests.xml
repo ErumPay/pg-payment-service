@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.erumpay.pgpayment.PgpaymentApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-05-16T07:45:54.466Z" hostname="DESKTOP-12MCCAQ" time="12.128">
+<testsuite name="com.erumpay.pgpayment.PgpaymentApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-05-18T06:21:45.045Z" hostname="DESKTOP-12MCCAQ" time="9.668">
   <properties/>
-  <testcase name="contextLoads()" classname="com.erumpay.pgpayment.PgpaymentApplicationTests" time="0.051"/>
-  <system-out><![CDATA[16:45:54.643 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.erumpay.pgpayment.PgpaymentApplicationTests]: PgpaymentApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-16:45:54.851 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.erumpay.pgpayment.PgpaymentApplication for test class com.erumpay.pgpayment.PgpaymentApplicationTests
+  <testcase name="contextLoads()" classname="com.erumpay.pgpayment.PgpaymentApplicationTests" time="0.178"/>
+  <system-out><![CDATA[15:21:45.207 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.erumpay.pgpayment.PgpaymentApplicationTests]: PgpaymentApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+15:21:45.382 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.erumpay.pgpayment.PgpaymentApplication for test class com.erumpay.pgpayment.PgpaymentApplicationTests
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -14,22 +14,22 @@
 
  :: Spring Boot ::               (v3.5.14)
 
-2026-05-16T16:45:55.493+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] c.e.pgpayment.PgpaymentApplicationTests  : Starting PgpaymentApplicationTests using Java 21.0.11 with PID 22388 (started by user in C:\erumpay\pgpayment)
-2026-05-16T16:45:55.493+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] c.e.pgpayment.PgpaymentApplicationTests  : No active profile set, falling back to 1 default profile: "default"
-2026-05-16T16:45:57.299+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
-2026-05-16T16:45:57.303+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
-2026-05-16T16:45:57.384+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.erumpay.pgpayment.repository.PgPaymentLedgerRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
-2026-05-16T16:45:57.384+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 49 ms. Found 0 Redis repository interfaces.
-2026-05-16T16:45:57.916+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] o.s.cloud.context.scope.GenericScope     : BeanFactory id=d5f28bb0-8f55-32f0-9a3b-8f72c04d5a30
-2026-05-16T16:46:03.283+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
-2026-05-16T16:46:03.381+09:00  WARN 22388 --- [pgpayment] [    Test worker] [                                                 ] .s.s.UserDetailsServiceAutoConfiguration : 
+2026-05-18T15:21:45.991+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] c.e.pgpayment.PgpaymentApplicationTests  : Starting PgpaymentApplicationTests using Java 21.0.11 with PID 15032 (started by user in C:\erumpay\pgpayment)
+2026-05-18T15:21:45.998+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] c.e.pgpayment.PgpaymentApplicationTests  : No active profile set, falling back to 1 default profile: "default"
+2026-05-18T15:21:47.516+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-05-18T15:21:47.526+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-05-18T15:21:47.573+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.erumpay.pgpayment.repository.PgPaymentLedgerRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-05-18T15:21:47.573+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 31 ms. Found 0 Redis repository interfaces.
+2026-05-18T15:21:47.968+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] o.s.cloud.context.scope.GenericScope     : BeanFactory id=76824597-09fe-3244-982e-a82cadb03593
+2026-05-18T15:21:51.789+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-05-18T15:21:51.879+09:00  WARN 15032 --- [pgpayment] [    Test worker] [                                                 ] .s.s.UserDetailsServiceAutoConfiguration : 
 
-Using generated security password: 01d67068-f1cd-4b00-b8bd-f0a10afb56a5
+Using generated security password: d7164c58-38d9-4fae-ba8b-ba5b3f65a084
 
 This generated password is for development use only. Your security configuration must be updated before running your application in production.
 
-2026-05-16T16:46:03.404+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2026-05-16T16:46:06.407+09:00  INFO 22388 --- [pgpayment] [    Test worker] [                                                 ] c.e.pgpayment.PgpaymentApplicationTests  : Started PgpaymentApplicationTests in 11.274 seconds (process running for 12.78)
+2026-05-18T15:21:51.891+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-05-18T15:21:54.388+09:00  INFO 15032 --- [pgpayment] [    Test worker] [                                                 ] c.e.pgpayment.PgpaymentApplicationTests  : Started PgpaymentApplicationTests in 8.731 seconds (process running for 10.099)
 ]]></system-out>
   <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
 WARNING: A Java agent has been loaded dynamically (C:\Users\user\.gradle\caches\modules-2\files-2.1\net.bytebuddy\byte-buddy-agent\1.17.8\f09415827a71be7ed621c7bd02550678f28bc81c\byte-buddy-agent-1.17.8.jar)
