@@ -15,3 +15,30 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+resilience4j:
+  retry:
+    instances:
+      billingKeyTokenRetrieve:
+        max-attempts: 2
+        wait-duration: 200ms
+        retry-exceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+
+      cardPaymentInquire:
+        max-attempts: 2
+        wait-duration: 300ms
+        retry-exceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+
+      cardPreApprovalInquire:
+        max-attempts: 2
+        wait-duration: 300ms
+        retry-exceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException

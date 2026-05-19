@@ -1,18 +1,14 @@
 package com.erumpay.pgpayment.service;
 
-import com.erumpay.pgpayment.client.billingkey.BillingKeyClient;
-import com.erumpay.pgpayment.client.billingkey.dto.BillingKeyTokenRetrieveRequest;
 import com.erumpay.pgpayment.client.billingkey.dto.BillingKeyTokenRetrieveResponse;
 import com.erumpay.pgpayment.client.cardsimulator.CardSimulatorClient;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentApproveRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentApproveResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentCancelRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentCancelResponse;
-import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentInquireRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentInquireResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCancelRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCancelResponse;
-import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalInquireRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalInquireResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalResponse;
@@ -47,7 +43,7 @@ public class PgPaymentCommandService {
     private final PgPaymentLedgerWriter pgPaymentLedgerWriter;
     private final PgApprovalNumberGenerator pgApprovalNumberGenerator;
     private final CardSimulatorDateTimeParser cardSimulatorDateTimeParser;
-    private final BillingKeyClient billingKeyClient;
+    private final PgExternalClientGateway pgExternalClientGateway;
     private final CardSimulatorClient cardSimulatorClient;
     private final PgPaymentProperties pgPaymentProperties;
 
@@ -500,9 +496,11 @@ public class PgPaymentCommandService {
             String failureCode
     ) {
         try {
-            PaymentInquireResponse inquiry = cardSimulatorClient.inquirePayment(
+            PaymentInquireResponse inquiry = pgExternalClientGateway.inquirePayment(
                     authorization,
-                    new PaymentInquireRequest(pgPaymentProperties.getPgId(), cardCompany, ledger.getPgTxnId())
+                    pgPaymentProperties.getPgId(),
+                    cardCompany,
+                    ledger.getPgTxnId()
             );
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.AUTH, ledger.getPgTxnId());
@@ -539,9 +537,11 @@ public class PgPaymentCommandService {
             String failureCode
     ) {
         try {
-            PreApprovalInquireResponse inquiry = cardSimulatorClient.inquirePreApproval(
+            PreApprovalInquireResponse inquiry = pgExternalClientGateway.inquirePreApproval(
                     authorization,
-                    new PreApprovalInquireRequest(pgPaymentProperties.getPgId(), cardCompany, ledger.getPgTxnId())
+                    pgPaymentProperties.getPgId(),
+                    cardCompany,
+                    ledger.getPgTxnId()
             );
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.AUTH_ONLY, ledger.getPgTxnId());
@@ -578,9 +578,11 @@ public class PgPaymentCommandService {
             String failureCode
     ) {
         try {
-            PaymentInquireResponse inquiry = cardSimulatorClient.inquirePayment(
+            PaymentInquireResponse inquiry = pgExternalClientGateway.inquirePayment(
                     authorization,
-                    new PaymentInquireRequest(pgPaymentProperties.getPgId(), cardCompany, ledger.getPgTxnId())
+                    pgPaymentProperties.getPgId(),
+                    cardCompany,
+                    ledger.getPgTxnId()
             );
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.CANCEL, ledger.getPgTxnId());
@@ -616,9 +618,11 @@ public class PgPaymentCommandService {
             String failureCode
     ) {
         try {
-            PreApprovalInquireResponse inquiry = cardSimulatorClient.inquirePreApproval(
+            PreApprovalInquireResponse inquiry = pgExternalClientGateway.inquirePreApproval(
                     authorization,
-                    new PreApprovalInquireRequest(pgPaymentProperties.getPgId(), cardCompany, ledger.getPgTxnId())
+                    pgPaymentProperties.getPgId(),
+                    cardCompany,
+                    ledger.getPgTxnId()
             );
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.VOID, ledger.getPgTxnId());
@@ -706,9 +710,7 @@ public class PgPaymentCommandService {
 
     private BillingKeyTokenRetrieveResponse retrieveCardTokenOrFail(PgPaymentLedger ledger, String billingKey) {
         try {
-            BillingKeyTokenRetrieveResponse token = billingKeyClient.retrieveCardToken(
-                    new BillingKeyTokenRetrieveRequest(billingKey)
-            );
+            BillingKeyTokenRetrieveResponse token = pgExternalClientGateway.retrieveCardToken(billingKey);
             if (token == null || token.cardToken() == null || token.cardToken().isBlank()
                     || token.cardCompany() == null || token.cardCompany().isBlank()) {
                 throw new IllegalStateException("Billing-key service returned an invalid card token response.");
