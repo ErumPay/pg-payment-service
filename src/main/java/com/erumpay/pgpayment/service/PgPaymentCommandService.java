@@ -1,7 +1,6 @@
 package com.erumpay.pgpayment.service;
 
 import com.erumpay.pgpayment.client.billingkey.dto.BillingKeyTokenRetrieveResponse;
-import com.erumpay.pgpayment.client.cardsimulator.CardSimulatorClient;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentApproveRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentApproveResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentCancelRequest;
@@ -25,6 +24,7 @@ import com.erumpay.pgpayment.global.exception.ErrorCode;
 import com.erumpay.pgpayment.global.exception.PgPaymentException;
 import com.erumpay.pgpayment.repository.PgPaymentLedgerRepository;
 import feign.RetryableException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +44,6 @@ public class PgPaymentCommandService {
     private final PgApprovalNumberGenerator pgApprovalNumberGenerator;
     private final CardSimulatorDateTimeParser cardSimulatorDateTimeParser;
     private final PgExternalClientGateway pgExternalClientGateway;
-    private final CardSimulatorClient cardSimulatorClient;
     private final PgPaymentProperties pgPaymentProperties;
 
     public PgPaymentResultResponse authorize(
@@ -73,7 +72,12 @@ public class PgPaymentCommandService {
                     .orElseThrow(() -> new PgPaymentException(ErrorCode.LEDGER_SAVE_FAILED)));
         }
 
-        BillingKeyTokenRetrieveResponse token = retrieveCardTokenOrFail(ledger, request.billingKey());
+        BillingKeyTokenRetrieveResponse token;
+        try {
+            token = retrieveCardTokenOrFail(ledger, request.billingKey());
+        } catch (CallNotPermittedException exception) {
+            return failBillingKeyCircuitOpen(ledger);
+        }
         if (token == null) {
             return failAndReturn(
                     ledger,
@@ -93,12 +97,15 @@ public class PgPaymentCommandService {
         );
 
         try {
-            PaymentApproveResponse response = cardSimulatorClient.approvePayment(
+            PaymentApproveResponse response = pgExternalClientGateway.approvePayment(
                     authorization,
                     idempotencyKey,
                     cardRequest
             );
             return applyPaymentApproveResponse(ledger, authorization, token.cardCompany(), response);
+        } catch (CallNotPermittedException exception) {
+            log.warn("Card payment approve circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            return failCardCircuitOpen(ledger, token.cardCompany());
         } catch (RetryableException exception) {
             log.warn("Card payment approve timed out. pgTxnId={}", ledger.getPgTxnId(), exception);
             return recoverPaymentApproveByInquiry(ledger, authorization, token.cardCompany(), "CARD_RESULT_UNKNOWN");
@@ -139,7 +146,12 @@ public class PgPaymentCommandService {
                     .orElseThrow(() -> new PgPaymentException(ErrorCode.LEDGER_SAVE_FAILED)));
         }
 
-        BillingKeyTokenRetrieveResponse token = retrieveCardTokenOrFail(ledger, request.billingKey());
+        BillingKeyTokenRetrieveResponse token;
+        try {
+            token = retrieveCardTokenOrFail(ledger, request.billingKey());
+        } catch (CallNotPermittedException exception) {
+            return failBillingKeyCircuitOpen(ledger);
+        }
         if (token == null) {
             return failAndReturn(
                     ledger,
@@ -159,12 +171,15 @@ public class PgPaymentCommandService {
         );
 
         try {
-            PreApprovalResponse response = cardSimulatorClient.requestPreApproval(
+            PreApprovalResponse response = pgExternalClientGateway.requestPreApproval(
                     authorization,
                     idempotencyKey,
                     cardRequest
             );
             return applyPreApprovalResponse(ledger, authorization, token.cardCompany(), response);
+        } catch (CallNotPermittedException exception) {
+            log.warn("Card pre-approval circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            return failCardCircuitOpen(ledger, token.cardCompany());
         } catch (RetryableException exception) {
             log.warn("Card pre-approval request timed out. pgTxnId={}", ledger.getPgTxnId(), exception);
             return recoverPreApprovalByInquiry(ledger, authorization, token.cardCompany(), "CARD_AUTH_ONLY_RESULT_UNKNOWN");
@@ -207,7 +222,12 @@ public class PgPaymentCommandService {
                     .orElseThrow(() -> new PgPaymentException(ErrorCode.LEDGER_SAVE_FAILED)));
         }
 
-        BillingKeyTokenRetrieveResponse token = retrieveCardTokenOrFail(ledger, original.getBillingKey());
+        BillingKeyTokenRetrieveResponse token;
+        try {
+            token = retrieveCardTokenOrFail(ledger, original.getBillingKey());
+        } catch (CallNotPermittedException exception) {
+            return failBillingKeyCircuitOpen(ledger);
+        }
         if (token == null) {
             return failAndReturn(
                     ledger,
@@ -227,12 +247,15 @@ public class PgPaymentCommandService {
         );
 
         try {
-            PaymentCancelResponse response = cardSimulatorClient.cancelPayment(
+            PaymentCancelResponse response = pgExternalClientGateway.cancelPayment(
                     authorization,
                     idempotencyKey,
                     cardRequest
             );
             return applyPaymentCancelResponse(ledger, authorization, token.cardCompany(), response);
+        } catch (CallNotPermittedException exception) {
+            log.warn("Card payment cancel circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            return failCardCircuitOpen(ledger, token.cardCompany());
         } catch (RetryableException exception) {
             log.warn("Card payment cancel timed out. pgTxnId={}", ledger.getPgTxnId(), exception);
             return recoverPaymentCancelByInquiry(ledger, authorization, token.cardCompany(), "CARD_CANCEL_RESULT_UNKNOWN");
@@ -275,7 +298,12 @@ public class PgPaymentCommandService {
                     .orElseThrow(() -> new PgPaymentException(ErrorCode.LEDGER_SAVE_FAILED)));
         }
 
-        BillingKeyTokenRetrieveResponse token = retrieveCardTokenOrFail(ledger, original.getBillingKey());
+        BillingKeyTokenRetrieveResponse token;
+        try {
+            token = retrieveCardTokenOrFail(ledger, original.getBillingKey());
+        } catch (CallNotPermittedException exception) {
+            return failBillingKeyCircuitOpen(ledger);
+        }
         if (token == null) {
             return failAndReturn(
                     ledger,
@@ -295,12 +323,15 @@ public class PgPaymentCommandService {
         );
 
         try {
-            PreApprovalCancelResponse response = cardSimulatorClient.cancelPreApproval(
+            PreApprovalCancelResponse response = pgExternalClientGateway.cancelPreApproval(
                     authorization,
                     idempotencyKey,
                     cardRequest
             );
             return applyPreApprovalCancelResponse(ledger, authorization, token.cardCompany(), response);
+        } catch (CallNotPermittedException exception) {
+            log.warn("Card pre-approval void circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            return failCardCircuitOpen(ledger, token.cardCompany());
         } catch (RetryableException exception) {
             log.warn("Card pre-approval void timed out. pgTxnId={}", ledger.getPgTxnId(), exception);
             return recoverPreApprovalCancelByInquiry(ledger, authorization, token.cardCompany(), "CARD_VOID_RESULT_UNKNOWN");
@@ -524,6 +555,17 @@ public class PgPaymentCommandService {
                     );
                 }
             }
+        } catch (CallNotPermittedException exception) {
+            log.warn("Card payment inquire circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            if ("LEDGER_RECOVERY_REQUIRED".equals(failureCode)) {
+                return markRecoveryOrFail(
+                        ledger,
+                        cardCompany,
+                        "LEDGER_RECOVERY_REQUIRED",
+                        "Card payment was approved, but PG ledger recovery inquiry was blocked by an open circuit."
+                );
+            }
+            return failCardCircuitOpen(ledger, cardCompany);
         } catch (RuntimeException exception) {
             log.error("Failed to recover payment approve by inquiry. pgTxnId={}", ledger.getPgTxnId(), exception);
         }
@@ -565,6 +607,17 @@ public class PgPaymentCommandService {
                     );
                 }
             }
+        } catch (CallNotPermittedException exception) {
+            log.warn("Card pre-approval inquire circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            if ("LEDGER_RECOVERY_REQUIRED".equals(failureCode)) {
+                return markRecoveryOrFail(
+                        ledger,
+                        cardCompany,
+                        "LEDGER_RECOVERY_REQUIRED",
+                        "Card pre-approval was approved, but PG ledger recovery inquiry was blocked by an open circuit."
+                );
+            }
+            return failCardCircuitOpen(ledger, cardCompany);
         } catch (RuntimeException exception) {
             log.error("Failed to recover pre-approval by inquiry. pgTxnId={}", ledger.getPgTxnId(), exception);
         }
@@ -605,6 +658,17 @@ public class PgPaymentCommandService {
                     );
                 }
             }
+        } catch (CallNotPermittedException exception) {
+            log.warn("Card payment cancel inquire circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            if ("LEDGER_RECOVERY_REQUIRED".equals(failureCode)) {
+                return markRecoveryOrFail(
+                        ledger,
+                        cardCompany,
+                        "LEDGER_RECOVERY_REQUIRED",
+                        "Card payment was cancelled, but PG ledger recovery inquiry was blocked by an open circuit."
+                );
+            }
+            return failCardCircuitOpen(ledger, cardCompany);
         } catch (RuntimeException exception) {
             log.error("Failed to recover payment cancel by inquiry. pgTxnId={}", ledger.getPgTxnId(), exception);
         }
@@ -645,6 +709,17 @@ public class PgPaymentCommandService {
                     );
                 }
             }
+        } catch (CallNotPermittedException exception) {
+            log.warn("Card pre-approval void inquire circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            if ("LEDGER_RECOVERY_REQUIRED".equals(failureCode)) {
+                return markRecoveryOrFail(
+                        ledger,
+                        cardCompany,
+                        "LEDGER_RECOVERY_REQUIRED",
+                        "Card pre-approval was voided, but PG ledger recovery inquiry was blocked by an open circuit."
+                );
+            }
+            return failCardCircuitOpen(ledger, cardCompany);
         } catch (RuntimeException exception) {
             log.error("Failed to recover pre-approval void by inquiry. pgTxnId={}", ledger.getPgTxnId(), exception);
         }
@@ -708,6 +783,24 @@ public class PgPaymentCommandService {
         }
     }
 
+    private PgPaymentResultResponse failCardCircuitOpen(PgPaymentLedger ledger, String cardCompany) {
+        return failAndReturn(
+                ledger,
+                cardCompany,
+                "CARD_CIRCUIT_OPEN",
+                "Card simulator circuit is open."
+        );
+    }
+
+    private PgPaymentResultResponse failBillingKeyCircuitOpen(PgPaymentLedger ledger) {
+        return failAndReturn(
+                ledger,
+                null,
+                "BILLING_KEY_CIRCUIT_OPEN",
+                "Billing-key circuit is open."
+        );
+    }
+
     private BillingKeyTokenRetrieveResponse retrieveCardTokenOrFail(PgPaymentLedger ledger, String billingKey) {
         try {
             BillingKeyTokenRetrieveResponse token = pgExternalClientGateway.retrieveCardToken(billingKey);
@@ -716,6 +809,9 @@ public class PgPaymentCommandService {
                 throw new IllegalStateException("Billing-key service returned an invalid card token response.");
             }
             return token;
+        } catch (CallNotPermittedException exception) {
+            log.warn("Billing-key circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            throw exception;
         } catch (RuntimeException exception) {
             log.warn("Billing-key lookup failed. pgTxnId={}", ledger.getPgTxnId(), exception);
             return null;

@@ -42,3 +42,34 @@ resilience4j:
           - feign.RetryableException
           - java.net.SocketTimeoutException
           - java.net.ConnectException
+
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - feign.RetryableException
+          - feign.FeignException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+    instances:
+      billingKeyTokenRetrieve:
+        base-config: default
+      cardPaymentApprove:
+        base-config: default
+      cardPreApprovalRequest:
+        base-config: default
+      cardPaymentCancel:
+        base-config: default
+      cardPreApprovalCancel:
+        base-config: default
+      cardPaymentInquire:
+        base-config: default
+      cardPreApprovalInquire:
+        base-config: default
