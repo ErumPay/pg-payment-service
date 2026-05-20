@@ -49,8 +49,7 @@ public class PgPaymentCommandService {
     public PgPaymentResultResponse authorize(
             PgPaymentAuthRequest request,
             String authorization,
-            String idempotencyKey
-    ) {
+            String idempotencyKey) {
         Optional<PgPaymentLedger> existing = pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             return PgPaymentResultResponse.from(existing.get());
@@ -63,10 +62,9 @@ public class PgPaymentCommandService {
                 idempotencyKey,
                 request.billingKey(),
                 request.merchantId(),
-                request.amount(),
+                request.approvedAmount(),
                 PgTxnType.AUTH,
-                UNKNOWN_CARD_COMPANY
-        ).orElse(null);
+                UNKNOWN_CARD_COMPANY).orElse(null);
         if (ledger == null) {
             return PgPaymentResultResponse.from(pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey)
                     .orElseThrow(() -> new PgPaymentException(ErrorCode.LEDGER_SAVE_FAILED)));
@@ -83,25 +81,22 @@ public class PgPaymentCommandService {
                     ledger,
                     null,
                     "BILLING_KEY_LOOKUP_FAILED",
-                    "Failed to retrieve card token from billing-key-service."
-            );
+                    "Failed to retrieve card token from billing-key-service.");
         }
 
         PaymentApproveRequest cardRequest = new PaymentApproveRequest(
                 pgPaymentProperties.getPgId(),
                 token.cardCompany(),
                 token.cardToken(),
-                request.amount(),
-                request.amount(),
-                ledger.getPgTxnId()
-        );
+                request.originalAmount(),
+                request.approvedAmount(),
+                ledger.getPgTxnId());
 
         try {
             PaymentApproveResponse response = pgExternalClientGateway.approvePayment(
                     authorization,
                     idempotencyKey,
-                    cardRequest
-            );
+                    cardRequest);
             return applyPaymentApproveResponse(ledger, authorization, token.cardCompany(), response);
         } catch (CallNotPermittedException exception) {
             log.warn("Card payment approve circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
@@ -115,16 +110,14 @@ public class PgPaymentCommandService {
                     ledger,
                     token.cardCompany(),
                     "CARD_REQUEST_FAILED",
-                    "Card payment approve request failed."
-            );
+                    "Card payment approve request failed.");
         }
     }
 
     public PgPaymentResultResponse authorizeOnly(
             PgPaymentAuthOnlyRequest request,
             String authorization,
-            String idempotencyKey
-    ) {
+            String idempotencyKey) {
         Optional<PgPaymentLedger> existing = pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             return PgPaymentResultResponse.from(existing.get());
@@ -137,10 +130,9 @@ public class PgPaymentCommandService {
                 idempotencyKey,
                 request.billingKey(),
                 request.merchantId(),
-                request.amount(),
+                request.approvedAmount(),
                 PgTxnType.AUTH_ONLY,
-                UNKNOWN_CARD_COMPANY
-        ).orElse(null);
+                UNKNOWN_CARD_COMPANY).orElse(null);
         if (ledger == null) {
             return PgPaymentResultResponse.from(pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey)
                     .orElseThrow(() -> new PgPaymentException(ErrorCode.LEDGER_SAVE_FAILED)));
@@ -157,40 +149,37 @@ public class PgPaymentCommandService {
                     ledger,
                     null,
                     "BILLING_KEY_LOOKUP_FAILED",
-                    "Failed to retrieve card token from billing-key-service."
-            );
+                    "Failed to retrieve card token from billing-key-service.");
         }
 
         PreApprovalRequest cardRequest = new PreApprovalRequest(
                 pgPaymentProperties.getPgId(),
                 token.cardCompany(),
                 token.cardToken(),
-                request.amount(),
-                request.amount(),
-                ledger.getPgTxnId()
-        );
+                request.originalAmount(),
+                request.approvedAmount(),
+                ledger.getPgTxnId());
 
         try {
             PreApprovalResponse response = pgExternalClientGateway.requestPreApproval(
                     authorization,
                     idempotencyKey,
-                    cardRequest
-            );
+                    cardRequest);
             return applyPreApprovalResponse(ledger, authorization, token.cardCompany(), response);
         } catch (CallNotPermittedException exception) {
             log.warn("Card pre-approval circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
             return failCardCircuitOpen(ledger, token.cardCompany());
         } catch (RetryableException exception) {
             log.warn("Card pre-approval request timed out. pgTxnId={}", ledger.getPgTxnId(), exception);
-            return recoverPreApprovalByInquiry(ledger, authorization, token.cardCompany(), "CARD_AUTH_ONLY_RESULT_UNKNOWN");
+            return recoverPreApprovalByInquiry(ledger, authorization, token.cardCompany(),
+                    "CARD_AUTH_ONLY_RESULT_UNKNOWN");
         } catch (RuntimeException exception) {
             log.warn("Card pre-approval request failed. pgTxnId={}", ledger.getPgTxnId(), exception);
             return failAndReturn(
                     ledger,
                     token.cardCompany(),
                     "CARD_AUTH_ONLY_FAILED",
-                    "Card pre-approval request failed."
-            );
+                    "Card pre-approval request failed.");
         }
     }
 
@@ -198,8 +187,7 @@ public class PgPaymentCommandService {
             Long originalPgTxnId,
             PgPaymentCancelRequest request,
             String authorization,
-            String idempotencyKey
-    ) {
+            String idempotencyKey) {
         Optional<PgPaymentLedger> existing = pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             return PgPaymentResultResponse.from(existing.get());
@@ -215,8 +203,7 @@ public class PgPaymentCommandService {
                 request.merchantId(),
                 original.getAmount(),
                 PgTxnType.CANCEL,
-                original.getCardCompany()
-        ).orElse(null);
+                original.getCardCompany()).orElse(null);
         if (ledger == null) {
             return PgPaymentResultResponse.from(pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey)
                     .orElseThrow(() -> new PgPaymentException(ErrorCode.LEDGER_SAVE_FAILED)));
@@ -233,8 +220,7 @@ public class PgPaymentCommandService {
                     ledger,
                     null,
                     "BILLING_KEY_LOOKUP_FAILED",
-                    "Failed to retrieve card token from billing-key-service."
-            );
+                    "Failed to retrieve card token from billing-key-service.");
         }
 
         PaymentCancelRequest cardRequest = new PaymentCancelRequest(
@@ -243,30 +229,28 @@ public class PgPaymentCommandService {
                 token.cardToken(),
                 original.getCardApprovalNumber(),
                 original.getPgTxnId(),
-                ledger.getPgTxnId()
-        );
+                ledger.getPgTxnId());
 
         try {
             PaymentCancelResponse response = pgExternalClientGateway.cancelPayment(
                     authorization,
                     idempotencyKey,
-                    cardRequest
-            );
+                    cardRequest);
             return applyPaymentCancelResponse(ledger, authorization, token.cardCompany(), response);
         } catch (CallNotPermittedException exception) {
             log.warn("Card payment cancel circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
             return failCardCircuitOpen(ledger, token.cardCompany());
         } catch (RetryableException exception) {
             log.warn("Card payment cancel timed out. pgTxnId={}", ledger.getPgTxnId(), exception);
-            return recoverPaymentCancelByInquiry(ledger, authorization, token.cardCompany(), "CARD_CANCEL_RESULT_UNKNOWN");
+            return recoverPaymentCancelByInquiry(ledger, authorization, token.cardCompany(),
+                    "CARD_CANCEL_RESULT_UNKNOWN");
         } catch (RuntimeException exception) {
             log.warn("Card payment cancel request failed. pgTxnId={}", ledger.getPgTxnId(), exception);
             return failAndReturn(
                     ledger,
                     token.cardCompany(),
                     "CARD_CANCEL_FAILED",
-                    "Card payment cancel request failed."
-            );
+                    "Card payment cancel request failed.");
         }
     }
 
@@ -274,8 +258,7 @@ public class PgPaymentCommandService {
             Long originalPgTxnId,
             PgPaymentVoidRequest request,
             String authorization,
-            String idempotencyKey
-    ) {
+            String idempotencyKey) {
         Optional<PgPaymentLedger> existing = pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             return PgPaymentResultResponse.from(existing.get());
@@ -291,8 +274,7 @@ public class PgPaymentCommandService {
                 request.merchantId(),
                 original.getAmount(),
                 PgTxnType.VOID,
-                original.getCardCompany()
-        ).orElse(null);
+                original.getCardCompany()).orElse(null);
         if (ledger == null) {
             return PgPaymentResultResponse.from(pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey)
                     .orElseThrow(() -> new PgPaymentException(ErrorCode.LEDGER_SAVE_FAILED)));
@@ -309,8 +291,7 @@ public class PgPaymentCommandService {
                     ledger,
                     null,
                     "BILLING_KEY_LOOKUP_FAILED",
-                    "Failed to retrieve card token from billing-key-service."
-            );
+                    "Failed to retrieve card token from billing-key-service.");
         }
 
         PreApprovalCancelRequest cardRequest = new PreApprovalCancelRequest(
@@ -319,30 +300,28 @@ public class PgPaymentCommandService {
                 token.cardToken(),
                 original.getCardApprovalNumber(),
                 original.getPgTxnId(),
-                ledger.getPgTxnId()
-        );
+                ledger.getPgTxnId());
 
         try {
             PreApprovalCancelResponse response = pgExternalClientGateway.cancelPreApproval(
                     authorization,
                     idempotencyKey,
-                    cardRequest
-            );
+                    cardRequest);
             return applyPreApprovalCancelResponse(ledger, authorization, token.cardCompany(), response);
         } catch (CallNotPermittedException exception) {
             log.warn("Card pre-approval void circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
             return failCardCircuitOpen(ledger, token.cardCompany());
         } catch (RetryableException exception) {
             log.warn("Card pre-approval void timed out. pgTxnId={}", ledger.getPgTxnId(), exception);
-            return recoverPreApprovalCancelByInquiry(ledger, authorization, token.cardCompany(), "CARD_VOID_RESULT_UNKNOWN");
+            return recoverPreApprovalCancelByInquiry(ledger, authorization, token.cardCompany(),
+                    "CARD_VOID_RESULT_UNKNOWN");
         } catch (RuntimeException exception) {
             log.warn("Card pre-approval void request failed. pgTxnId={}", ledger.getPgTxnId(), exception);
             return failAndReturn(
                     ledger,
                     token.cardCompany(),
                     "CARD_VOID_FAILED",
-                    "Card pre-approval void request failed."
-            );
+                    "Card pre-approval void request failed.");
         }
     }
 
@@ -350,8 +329,7 @@ public class PgPaymentCommandService {
             PgPaymentLedger ledger,
             String authorization,
             String cardCompany,
-            PaymentApproveResponse response
-    ) {
+            PaymentApproveResponse response) {
         if (!isSuccess(response.responseCode())) {
             return rejectAndReturn(ledger, cardCompany, response.responseMessage());
         }
@@ -363,16 +341,14 @@ public class PgPaymentCommandService {
                 cardCompany,
                 pgApprovalNumber,
                 response.approvalNumber(),
-                approvedAt
-        );
+                approvedAt);
     }
 
     private PgPaymentResultResponse applyPreApprovalResponse(
             PgPaymentLedger ledger,
             String authorization,
             String cardCompany,
-            PreApprovalResponse response
-    ) {
+            PreApprovalResponse response) {
         if (!isSuccess(response.responseCode())) {
             return rejectAndReturn(ledger, cardCompany, response.responseMessage());
         }
@@ -384,16 +360,14 @@ public class PgPaymentCommandService {
                 cardCompany,
                 pgApprovalNumber,
                 response.preApprovalNumber(),
-                approvedAt
-        );
+                approvedAt);
     }
 
     private PgPaymentResultResponse applyPaymentCancelResponse(
             PgPaymentLedger ledger,
             String authorization,
             String cardCompany,
-            PaymentCancelResponse response
-    ) {
+            PaymentCancelResponse response) {
         if (!isSuccess(response.responseCode())) {
             return failAndReturn(ledger, cardCompany, "CARD_CANCEL_FAILED", response.responseMessage());
         }
@@ -405,16 +379,14 @@ public class PgPaymentCommandService {
                 cardCompany,
                 pgApprovalNumber,
                 response.approvalNumber(),
-                processedAt
-        );
+                processedAt);
     }
 
     private PgPaymentResultResponse applyPreApprovalCancelResponse(
             PgPaymentLedger ledger,
             String authorization,
             String cardCompany,
-            PreApprovalCancelResponse response
-    ) {
+            PreApprovalCancelResponse response) {
         if (!isSuccess(response.responseCode())) {
             return failAndReturn(ledger, cardCompany, "CARD_VOID_FAILED", response.responseMessage());
         }
@@ -426,8 +398,7 @@ public class PgPaymentCommandService {
                 cardCompany,
                 pgApprovalNumber,
                 response.preApprovalNumber(),
-                processedAt
-        );
+                processedAt);
     }
 
     private PgPaymentResultResponse approveWithRecovery(
@@ -436,16 +407,14 @@ public class PgPaymentCommandService {
             String cardCompany,
             String pgApprovalNumber,
             String cardApprovalNumber,
-            LocalDateTime approvedAt
-    ) {
+            LocalDateTime approvedAt) {
         try {
             PgPaymentLedger approved = pgPaymentLedgerWriter.approve(
                     ledger.getPgTxnId(),
                     cardCompany,
                     pgApprovalNumber,
                     cardApprovalNumber,
-                    approvedAt
-            );
+                    approvedAt);
             return PgPaymentResultResponse.from(approved);
         } catch (RuntimeException exception) {
             log.error("Failed to save APPROVED ledger. pgTxnId={}", ledger.getPgTxnId(), exception);
@@ -459,16 +428,14 @@ public class PgPaymentCommandService {
             String cardCompany,
             String pgApprovalNumber,
             String cardApprovalNumber,
-            LocalDateTime approvedAt
-    ) {
+            LocalDateTime approvedAt) {
         try {
             PgPaymentLedger approved = pgPaymentLedgerWriter.approve(
                     ledger.getPgTxnId(),
                     cardCompany,
                     pgApprovalNumber,
                     cardApprovalNumber,
-                    approvedAt
-            );
+                    approvedAt);
             return PgPaymentResultResponse.from(approved);
         } catch (RuntimeException exception) {
             log.error("Failed to save AUTH_ONLY APPROVED ledger. pgTxnId={}", ledger.getPgTxnId(), exception);
@@ -482,15 +449,13 @@ public class PgPaymentCommandService {
             String cardCompany,
             String pgApprovalNumber,
             String cardApprovalNumber,
-            LocalDateTime processedAt
-    ) {
+            LocalDateTime processedAt) {
         try {
             PgPaymentLedger cancelled = pgPaymentLedgerWriter.cancel(
                     ledger.getPgTxnId(),
                     pgApprovalNumber,
                     cardApprovalNumber,
-                    processedAt
-            );
+                    processedAt);
             return PgPaymentResultResponse.from(cancelled);
         } catch (RuntimeException exception) {
             log.error("Failed to save CANCELLED ledger. pgTxnId={}", ledger.getPgTxnId(), exception);
@@ -504,15 +469,13 @@ public class PgPaymentCommandService {
             String cardCompany,
             String pgApprovalNumber,
             String cardApprovalNumber,
-            LocalDateTime processedAt
-    ) {
+            LocalDateTime processedAt) {
         try {
             PgPaymentLedger voided = pgPaymentLedgerWriter.voidHold(
                     ledger.getPgTxnId(),
                     pgApprovalNumber,
                     cardApprovalNumber,
-                    processedAt
-            );
+                    processedAt);
             return PgPaymentResultResponse.from(voided);
         } catch (RuntimeException exception) {
             log.error("Failed to save VOIDED ledger. pgTxnId={}", ledger.getPgTxnId(), exception);
@@ -524,15 +487,13 @@ public class PgPaymentCommandService {
             PgPaymentLedger ledger,
             String authorization,
             String cardCompany,
-            String failureCode
-    ) {
+            String failureCode) {
         try {
             PaymentInquireResponse inquiry = pgExternalClientGateway.inquirePayment(
                     authorization,
                     pgPaymentProperties.getPgId(),
                     cardCompany,
-                    ledger.getPgTxnId()
-            );
+                    ledger.getPgTxnId());
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.AUTH, ledger.getPgTxnId());
                 LocalDateTime approvedAt = cardSimulatorDateTimeParser.parseOrNow(inquiry.approvedAt());
@@ -542,17 +503,16 @@ public class PgPaymentCommandService {
                             cardCompany,
                             pgApprovalNumber,
                             inquiry.approvalNumber(),
-                            approvedAt
-                    );
+                            approvedAt);
                     return PgPaymentResultResponse.from(approved);
                 } catch (RuntimeException updateException) {
-                    log.error("Failed to save recovered APPROVED ledger. pgTxnId={}", ledger.getPgTxnId(), updateException);
+                    log.error("Failed to save recovered APPROVED ledger. pgTxnId={}", ledger.getPgTxnId(),
+                            updateException);
                     return markRecoveryOrFail(
                             ledger,
                             cardCompany,
                             "LEDGER_RECOVERY_REQUIRED",
-                            "Card payment was approved, but PG ledger update failed."
-                    );
+                            "Card payment was approved, but PG ledger update failed.");
                 }
             }
         } catch (CallNotPermittedException exception) {
@@ -562,8 +522,7 @@ public class PgPaymentCommandService {
                         ledger,
                         cardCompany,
                         "LEDGER_RECOVERY_REQUIRED",
-                        "Card payment was approved, but PG ledger recovery inquiry was blocked by an open circuit."
-                );
+                        "Card payment was approved, but PG ledger recovery inquiry was blocked by an open circuit.");
             }
             return failCardCircuitOpen(ledger, cardCompany);
         } catch (RuntimeException exception) {
@@ -576,15 +535,13 @@ public class PgPaymentCommandService {
             PgPaymentLedger ledger,
             String authorization,
             String cardCompany,
-            String failureCode
-    ) {
+            String failureCode) {
         try {
             PreApprovalInquireResponse inquiry = pgExternalClientGateway.inquirePreApproval(
                     authorization,
                     pgPaymentProperties.getPgId(),
                     cardCompany,
-                    ledger.getPgTxnId()
-            );
+                    ledger.getPgTxnId());
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.AUTH_ONLY, ledger.getPgTxnId());
                 LocalDateTime approvedAt = cardSimulatorDateTimeParser.parseOrNow(inquiry.preApprovedAt());
@@ -594,17 +551,16 @@ public class PgPaymentCommandService {
                             cardCompany,
                             pgApprovalNumber,
                             inquiry.preApprovalNumber(),
-                            approvedAt
-                    );
+                            approvedAt);
                     return PgPaymentResultResponse.from(approved);
                 } catch (RuntimeException updateException) {
-                    log.error("Failed to save recovered AUTH_ONLY APPROVED ledger. pgTxnId={}", ledger.getPgTxnId(), updateException);
+                    log.error("Failed to save recovered AUTH_ONLY APPROVED ledger. pgTxnId={}", ledger.getPgTxnId(),
+                            updateException);
                     return markRecoveryOrFail(
                             ledger,
                             cardCompany,
                             "LEDGER_RECOVERY_REQUIRED",
-                            "Card pre-approval was approved, but PG ledger update failed."
-                    );
+                            "Card pre-approval was approved, but PG ledger update failed.");
                 }
             }
         } catch (CallNotPermittedException exception) {
@@ -614,8 +570,7 @@ public class PgPaymentCommandService {
                         ledger,
                         cardCompany,
                         "LEDGER_RECOVERY_REQUIRED",
-                        "Card pre-approval was approved, but PG ledger recovery inquiry was blocked by an open circuit."
-                );
+                        "Card pre-approval was approved, but PG ledger recovery inquiry was blocked by an open circuit.");
             }
             return failCardCircuitOpen(ledger, cardCompany);
         } catch (RuntimeException exception) {
@@ -628,15 +583,13 @@ public class PgPaymentCommandService {
             PgPaymentLedger ledger,
             String authorization,
             String cardCompany,
-            String failureCode
-    ) {
+            String failureCode) {
         try {
             PaymentInquireResponse inquiry = pgExternalClientGateway.inquirePayment(
                     authorization,
                     pgPaymentProperties.getPgId(),
                     cardCompany,
-                    ledger.getPgTxnId()
-            );
+                    ledger.getPgTxnId());
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.CANCEL, ledger.getPgTxnId());
                 LocalDateTime processedAt = cardSimulatorDateTimeParser.parseOrNow(inquiry.approvedAt());
@@ -645,17 +598,16 @@ public class PgPaymentCommandService {
                             ledger.getPgTxnId(),
                             pgApprovalNumber,
                             inquiry.approvalNumber(),
-                            processedAt
-                    );
+                            processedAt);
                     return PgPaymentResultResponse.from(cancelled);
                 } catch (RuntimeException updateException) {
-                    log.error("Failed to save recovered CANCELLED ledger. pgTxnId={}", ledger.getPgTxnId(), updateException);
+                    log.error("Failed to save recovered CANCELLED ledger. pgTxnId={}", ledger.getPgTxnId(),
+                            updateException);
                     return markRecoveryOrFail(
                             ledger,
                             cardCompany,
                             "LEDGER_RECOVERY_REQUIRED",
-                            "Card payment was cancelled, but PG ledger update failed."
-                    );
+                            "Card payment was cancelled, but PG ledger update failed.");
                 }
             }
         } catch (CallNotPermittedException exception) {
@@ -665,8 +617,7 @@ public class PgPaymentCommandService {
                         ledger,
                         cardCompany,
                         "LEDGER_RECOVERY_REQUIRED",
-                        "Card payment was cancelled, but PG ledger recovery inquiry was blocked by an open circuit."
-                );
+                        "Card payment was cancelled, but PG ledger recovery inquiry was blocked by an open circuit.");
             }
             return failCardCircuitOpen(ledger, cardCompany);
         } catch (RuntimeException exception) {
@@ -679,15 +630,13 @@ public class PgPaymentCommandService {
             PgPaymentLedger ledger,
             String authorization,
             String cardCompany,
-            String failureCode
-    ) {
+            String failureCode) {
         try {
             PreApprovalInquireResponse inquiry = pgExternalClientGateway.inquirePreApproval(
                     authorization,
                     pgPaymentProperties.getPgId(),
                     cardCompany,
-                    ledger.getPgTxnId()
-            );
+                    ledger.getPgTxnId());
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.VOID, ledger.getPgTxnId());
                 LocalDateTime processedAt = cardSimulatorDateTimeParser.parseOrNow(inquiry.preApprovedAt());
@@ -696,17 +645,16 @@ public class PgPaymentCommandService {
                             ledger.getPgTxnId(),
                             pgApprovalNumber,
                             inquiry.preApprovalNumber(),
-                            processedAt
-                    );
+                            processedAt);
                     return PgPaymentResultResponse.from(voided);
                 } catch (RuntimeException updateException) {
-                    log.error("Failed to save recovered VOIDED ledger. pgTxnId={}", ledger.getPgTxnId(), updateException);
+                    log.error("Failed to save recovered VOIDED ledger. pgTxnId={}", ledger.getPgTxnId(),
+                            updateException);
                     return markRecoveryOrFail(
                             ledger,
                             cardCompany,
                             "LEDGER_RECOVERY_REQUIRED",
-                            "Card pre-approval was voided, but PG ledger update failed."
-                    );
+                            "Card pre-approval was voided, but PG ledger update failed.");
                 }
             }
         } catch (CallNotPermittedException exception) {
@@ -716,8 +664,7 @@ public class PgPaymentCommandService {
                         ledger,
                         cardCompany,
                         "LEDGER_RECOVERY_REQUIRED",
-                        "Card pre-approval was voided, but PG ledger recovery inquiry was blocked by an open circuit."
-                );
+                        "Card pre-approval was voided, but PG ledger recovery inquiry was blocked by an open circuit.");
             }
             return failCardCircuitOpen(ledger, cardCompany);
         } catch (RuntimeException exception) {
@@ -730,14 +677,12 @@ public class PgPaymentCommandService {
             PgPaymentLedger ledger,
             String cardCompany,
             String failureCode,
-            String failureMessage
-    ) {
+            String failureMessage) {
         if ("LEDGER_RECOVERY_REQUIRED".equals(failureCode)) {
             try {
                 PgPaymentLedger recoveryRequired = pgPaymentLedgerWriter.markRecoveryRequired(
                         ledger.getPgTxnId(),
-                        failureMessage
-                );
+                        failureMessage);
                 return PgPaymentResultResponse.from(recoveryRequired);
             } catch (RuntimeException exception) {
                 log.error("Failed to mark ledger recovery required. pgTxnId={}", ledger.getPgTxnId(), exception);
@@ -753,8 +698,7 @@ public class PgPaymentCommandService {
                     ledger.getPgTxnId(),
                     cardCompany,
                     rejectReason,
-                    LocalDateTime.now()
-            );
+                    LocalDateTime.now());
             return PgPaymentResultResponse.from(rejected);
         } catch (RuntimeException exception) {
             log.error("Failed to save REJECTED ledger. pgTxnId={}", ledger.getPgTxnId(), exception);
@@ -766,16 +710,14 @@ public class PgPaymentCommandService {
             PgPaymentLedger ledger,
             String cardCompany,
             String failureCode,
-            String failureMessage
-    ) {
+            String failureMessage) {
         try {
             PgPaymentLedger failed = pgPaymentLedgerWriter.fail(
                     ledger.getPgTxnId(),
                     cardCompany,
                     failureCode,
                     failureMessage,
-                    LocalDateTime.now()
-            );
+                    LocalDateTime.now());
             return PgPaymentResultResponse.from(failed);
         } catch (RuntimeException exception) {
             log.error("Failed to save FAILED ledger. pgTxnId={}", ledger.getPgTxnId(), exception);
@@ -788,8 +730,7 @@ public class PgPaymentCommandService {
                 ledger,
                 cardCompany,
                 "CARD_CIRCUIT_OPEN",
-                "Card simulator circuit is open."
-        );
+                "Card simulator circuit is open.");
     }
 
     private PgPaymentResultResponse failBillingKeyCircuitOpen(PgPaymentLedger ledger) {
@@ -797,8 +738,7 @@ public class PgPaymentCommandService {
                 ledger,
                 null,
                 "BILLING_KEY_CIRCUIT_OPEN",
-                "Billing-key circuit is open."
-        );
+                "Billing-key circuit is open.");
     }
 
     private BillingKeyTokenRetrieveResponse retrieveCardTokenOrFail(PgPaymentLedger ledger, String billingKey) {
@@ -827,8 +767,7 @@ public class PgPaymentCommandService {
             Long merchantId,
             Long amount,
             PgTxnType txnType,
-            String cardCompany
-    ) {
+            String cardCompany) {
         try {
             return Optional.of(pgPaymentLedgerWriter.createRequested(
                     originalTxnId,
@@ -839,8 +778,7 @@ public class PgPaymentCommandService {
                     merchantId,
                     amount,
                     txnType,
-                    cardCompany
-            ));
+                    cardCompany));
         } catch (DataIntegrityViolationException exception) {
             log.info("Idempotency key already exists. idempotencyKey={}", idempotencyKey);
             return Optional.empty();
@@ -856,8 +794,7 @@ public class PgPaymentCommandService {
         if (pgPaymentLedgerRepository.existsByOriginalTxnIdAndTxnTypeAndStatus(
                 originalPgTxnId,
                 PgTxnType.CANCEL,
-                PgPaymentStatus.CANCELLED
-        )) {
+                PgPaymentStatus.CANCELLED)) {
             throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "Payment transaction was already cancelled.");
         }
         return original;
@@ -866,14 +803,14 @@ public class PgPaymentCommandService {
     private PgPaymentLedger findOriginalForVoid(Long originalPgTxnId, PgPaymentVoidRequest request) {
         PgPaymentLedger original = findOriginal(originalPgTxnId);
         if (original.getTxnType() != PgTxnType.AUTH_ONLY || original.getStatus() != PgPaymentStatus.APPROVED) {
-            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "Only APPROVED AUTH_ONLY transaction can be voided.");
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST,
+                    "Only APPROVED AUTH_ONLY transaction can be voided.");
         }
         validateOriginalRequest(original, request.payPaymentId(), request.merchantId());
         if (pgPaymentLedgerRepository.existsByOriginalTxnIdAndTxnTypeAndStatus(
                 originalPgTxnId,
                 PgTxnType.VOID,
-                PgPaymentStatus.VOIDED
-        )) {
+                PgPaymentStatus.VOIDED)) {
             throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "Auth-only transaction was already voided.");
         }
         return original;
@@ -883,16 +820,14 @@ public class PgPaymentCommandService {
         return pgPaymentLedgerRepository.findById(originalPgTxnId)
                 .orElseThrow(() -> new PgPaymentException(
                         ErrorCode.PG_PAYMENT_NOT_FOUND,
-                        "Original PG transaction was not found. pgTxnId=" + originalPgTxnId
-                ));
+                        "Original PG transaction was not found. pgTxnId=" + originalPgTxnId));
     }
 
     private void validateOriginalRequest(PgPaymentLedger original, Long payPaymentId, Long merchantId) {
         if (!original.getPayPaymentId().equals(payPaymentId) || !original.getMerchantId().equals(merchantId)) {
             throw new PgPaymentException(
                     ErrorCode.INVALID_REQUEST,
-                    "payPaymentId and merchantId must match the original transaction."
-            );
+                    "payPaymentId and merchantId must match the original transaction.");
         }
     }
 
@@ -903,6 +838,6 @@ public class PgPaymentCommandService {
     }
 
     private boolean isSuccess(Integer responseCode) {
-        return Integer.valueOf(0).equals(responseCode);
+        return Integer.valueOf(300).equals(responseCode);
     }
 }
