@@ -6,6 +6,15 @@ public record PreApprovalCancelRequest(
         @JsonProperty("pg_id")
         String pgId,
 
+        @JsonProperty("origin_idempotency_key")
+        String originIdempotencyKey,
+
+        @JsonProperty("pg_txn_id")
+        Long pgTxnId,
+
+        @JsonProperty("origin_pg_txn_id")
+        Long originPgTxnId,
+
         @JsonProperty("card_company")
         String cardCompany,
 
@@ -13,12 +22,6 @@ public record PreApprovalCancelRequest(
         String cardToken,
 
         @JsonProperty("pre_approval_number")
-        String preApprovalNumber,
-
-        @JsonProperty("origin_pg_txn_id")
-        Long originPgTxnId,
-
-        @JsonProperty("pg_txn_id")
-        Long pgTxnId
+        String preApprovalNumber
 ) {
 }
