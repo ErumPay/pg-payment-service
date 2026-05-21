@@ -225,11 +225,12 @@ public class PgPaymentCommandService {
 
         PaymentCancelRequest cardRequest = new PaymentCancelRequest(
                 pgPaymentProperties.getPgId(),
+                original.getIdempotencyKey(),
+                ledger.getPgTxnId(),
+                original.getPgTxnId(),
                 token.cardCompany(),
                 token.cardToken(),
-                original.getCardApprovalNumber(),
-                original.getPgTxnId(),
-                ledger.getPgTxnId());
+                original.getCardApprovalNumber());
 
         try {
             PaymentCancelResponse response = pgExternalClientGateway.cancelPayment(
@@ -296,11 +297,12 @@ public class PgPaymentCommandService {
 
         PreApprovalCancelRequest cardRequest = new PreApprovalCancelRequest(
                 pgPaymentProperties.getPgId(),
+                original.getIdempotencyKey(),
+                ledger.getPgTxnId(),
+                original.getPgTxnId(),
                 token.cardCompany(),
                 token.cardToken(),
-                original.getCardApprovalNumber(),
-                original.getPgTxnId(),
-                ledger.getPgTxnId());
+                original.getCardApprovalNumber());
 
         try {
             PreApprovalCancelResponse response = pgExternalClientGateway.cancelPreApproval(
