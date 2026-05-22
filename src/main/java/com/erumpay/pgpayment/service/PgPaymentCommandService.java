@@ -495,7 +495,7 @@ public class PgPaymentCommandService {
                     authorization,
                     pgPaymentProperties.getPgId(),
                     cardCompany,
-                    ledger.getPgTxnId());
+                    ledger.getIdempotencyKey());
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.AUTH, ledger.getPgTxnId());
                 LocalDateTime approvedAt = cardSimulatorDateTimeParser.parseOrNow(inquiry.approvedAt());
@@ -543,7 +543,7 @@ public class PgPaymentCommandService {
                     authorization,
                     pgPaymentProperties.getPgId(),
                     cardCompany,
-                    ledger.getPgTxnId());
+                    ledger.getIdempotencyKey());
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.AUTH_ONLY, ledger.getPgTxnId());
                 LocalDateTime approvedAt = cardSimulatorDateTimeParser.parseOrNow(inquiry.preApprovedAt());
@@ -591,7 +591,7 @@ public class PgPaymentCommandService {
                     authorization,
                     pgPaymentProperties.getPgId(),
                     cardCompany,
-                    ledger.getPgTxnId());
+                    ledger.getIdempotencyKey());
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.CANCEL, ledger.getPgTxnId());
                 LocalDateTime processedAt = cardSimulatorDateTimeParser.parseOrNow(inquiry.approvedAt());
@@ -638,7 +638,7 @@ public class PgPaymentCommandService {
                     authorization,
                     pgPaymentProperties.getPgId(),
                     cardCompany,
-                    ledger.getPgTxnId());
+                    ledger.getIdempotencyKey());
             if (isSuccess(inquiry.responseCode())) {
                 String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.VOID, ledger.getPgTxnId());
                 LocalDateTime processedAt = cardSimulatorDateTimeParser.parseOrNow(inquiry.preApprovedAt());
@@ -680,10 +680,12 @@ public class PgPaymentCommandService {
             String cardCompany,
             String failureCode,
             String failureMessage) {
-        if ("LEDGER_RECOVERY_REQUIRED".equals(failureCode)) {
+        if (isReconciliationFailureCode(failureCode)) {
             try {
                 PgPaymentLedger recoveryRequired = pgPaymentLedgerWriter.markRecoveryRequired(
                         ledger.getPgTxnId(),
+                        cardCompany,
+                        failureCode,
                         failureMessage);
                 return PgPaymentResultResponse.from(recoveryRequired);
             } catch (RuntimeException exception) {
@@ -841,5 +843,11 @@ public class PgPaymentCommandService {
 
     private boolean isSuccess(Integer responseCode) {
         return Integer.valueOf(300).equals(responseCode);
+    }
+
+    private boolean isReconciliationFailureCode(String failureCode) {
+        return "LEDGER_RECOVERY_REQUIRED".equals(failureCode)
+                || "CARD_RESULT_UNKNOWN".equals(failureCode)
+                || "CARD_AUTH_ONLY_RESULT_UNKNOWN".equals(failureCode);
     }
 }

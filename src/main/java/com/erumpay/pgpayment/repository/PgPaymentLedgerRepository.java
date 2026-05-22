@@ -3,6 +3,8 @@ package com.erumpay.pgpayment.repository;
 import com.erumpay.pgpayment.domain.entity.PgPaymentLedger;
 import com.erumpay.pgpayment.domain.enums.PgPaymentStatus;
 import com.erumpay.pgpayment.domain.enums.PgTxnType;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +29,25 @@ public interface PgPaymentLedgerRepository extends JpaRepository<PgPaymentLedger
     );
 
     Page<PgPaymentLedger> findByMerchantId(Long merchantId, Pageable pageable);
+
+    @Query("""
+            select ledger
+            from PgPaymentLedger ledger
+            where ledger.status = :status
+              and ledger.txnType in :txnTypes
+              and ledger.failureCode in :failureCodes
+              and ledger.retryCount < :maxAttempts
+              and ledger.updatedAt <= :updatedBefore
+            order by ledger.updatedAt asc, ledger.pgTxnId asc
+            """)
+    List<PgPaymentLedger> findReconciliationTargets(
+            @Param("status") PgPaymentStatus status,
+            @Param("txnTypes") List<PgTxnType> txnTypes,
+            @Param("failureCodes") List<String> failureCodes,
+            @Param("maxAttempts") int maxAttempts,
+            @Param("updatedBefore") LocalDateTime updatedBefore,
+            Pageable pageable
+    );
 
     @Query("""
             select coalesce(sum(ledger.amount), 0)

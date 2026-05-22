@@ -169,7 +169,20 @@ public class PgPaymentLedger {
     }
 
     public void markRecoveryRequired(String failureMessage) {
-        this.failureCode = PgFailureCode.LEDGER_RECOVERY_REQUIRED.name();
+        markRecoveryRequired(null, PgFailureCode.LEDGER_RECOVERY_REQUIRED.name(), failureMessage);
+    }
+
+    public void markRecoveryRequired(String cardCompany, String failureCode, String failureMessage) {
+        if (cardCompany != null && !cardCompany.isBlank()) {
+            this.cardCompany = cardCompany;
+        }
+        this.failureCode = failureCode;
+        this.failureMessage = failureMessage;
+        this.retryCount = this.retryCount + 1;
+    }
+
+    public void markReconciliationRetryExhausted(String failureMessage) {
+        this.failureCode = PgFailureCode.RECONCILIATION_RETRY_EXHAUSTED.name();
         this.failureMessage = failureMessage;
         this.retryCount = this.retryCount + 1;
     }
