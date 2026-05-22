@@ -76,11 +76,11 @@ public class PgExternalClientGateway {
             String authorization,
             String pgId,
             String cardCompany,
-            Long pgTxnId
+            String targetIdempotencyKey
     ) {
         return cardSimulatorClient.inquirePayment(
                 authorization,
-                new PaymentInquireRequest(pgId, cardCompany, pgTxnId)
+                new PaymentInquireRequest(pgId, cardCompany, targetIdempotencyKey)
         );
     }
 
@@ -90,11 +90,11 @@ public class PgExternalClientGateway {
             String authorization,
             String pgId,
             String cardCompany,
-            Long pgTxnId
+            String targetIdempotencyKey
     ) {
         return cardSimulatorClient.inquirePreApproval(
                 authorization,
-                new PreApprovalInquireRequest(pgId, cardCompany, pgTxnId)
+                new PreApprovalInquireRequest(pgId, cardCompany, targetIdempotencyKey)
         );
     }
 }

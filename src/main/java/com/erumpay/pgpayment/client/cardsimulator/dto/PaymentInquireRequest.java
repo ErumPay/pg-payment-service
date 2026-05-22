@@ -9,7 +9,7 @@ public record PaymentInquireRequest(
         @JsonProperty("card_company")
         String cardCompany,
 
-        @JsonProperty("pg_txn_id")
-        Long pgTxnId
+        @JsonProperty("target_idempotency_key")
+        String targetIdempotencyKey
 ) {
 }

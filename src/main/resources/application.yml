@@ -16,6 +16,17 @@ spring:
       ddl-auto: update
     show-sql: true
 
+pg-payment:
+  pg-id: ${PG_PAYMENT_PG_ID:001}
+  reconciliation:
+    enabled: ${PG_PAYMENT_RECONCILIATION_ENABLED:true}
+    fixed-delay-ms: ${PG_PAYMENT_RECONCILIATION_FIXED_DELAY_MS:5000}
+    initial-delay-ms: ${PG_PAYMENT_RECONCILIATION_INITIAL_DELAY_MS:1000}
+    minimum-age-seconds: ${PG_PAYMENT_RECONCILIATION_MINIMUM_AGE_SECONDS:1}
+    max-attempts: ${PG_PAYMENT_RECONCILIATION_MAX_ATTEMPTS:5}
+    batch-size: ${PG_PAYMENT_RECONCILIATION_BATCH_SIZE:100}
+    authorization: ${PG_PAYMENT_RECONCILIATION_AUTHORIZATION:Bearer local-pg-reconciliation-token}
+
 resilience4j:
   retry:
     instances:

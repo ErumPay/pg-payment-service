@@ -1,11 +1,13 @@
 package com.erumpay.pgpayment.service;
 
 import com.erumpay.pgpayment.domain.entity.PgPaymentLedger;
+import com.erumpay.pgpayment.domain.enums.PgPaymentStatus;
 import com.erumpay.pgpayment.domain.enums.PgTxnType;
 import com.erumpay.pgpayment.global.exception.ErrorCode;
 import com.erumpay.pgpayment.global.exception.PgPaymentException;
 import com.erumpay.pgpayment.repository.PgPaymentLedgerRepository;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -115,6 +117,70 @@ public class PgPaymentLedgerWriter {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         ledger.markRecoveryRequired(failureMessage);
         return ledger;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public PgPaymentLedger markRecoveryRequired(
+            Long pgTxnId,
+            String cardCompany,
+            String failureCode,
+            String failureMessage
+    ) {
+        PgPaymentLedger ledger = findLedger(pgTxnId);
+        ledger.markRecoveryRequired(cardCompany, failureCode, failureMessage);
+        return ledger;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Optional<PgPaymentLedger> approveRequested(
+            Long pgTxnId,
+            String cardCompany,
+            String pgApprovalNumber,
+            String cardApprovalNumber,
+            LocalDateTime approvedAt
+    ) {
+        PgPaymentLedger ledger = findLedger(pgTxnId);
+        if (ledger.getStatus() != PgPaymentStatus.REQUESTED) {
+            return Optional.empty();
+        }
+        ledger.updateCardCompany(cardCompany);
+        ledger.approve(pgApprovalNumber, cardApprovalNumber, approvedAt);
+        return Optional.of(ledger);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Optional<PgPaymentLedger> rejectRequested(
+            Long pgTxnId,
+            String cardCompany,
+            String rejectReason,
+            LocalDateTime processedAt
+    ) {
+        PgPaymentLedger ledger = findLedger(pgTxnId);
+        if (ledger.getStatus() != PgPaymentStatus.REQUESTED) {
+            return Optional.empty();
+        }
+        ledger.updateCardCompany(cardCompany);
+        ledger.reject(rejectReason, processedAt);
+        return Optional.of(ledger);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Optional<PgPaymentLedger> markReconciliationUnresolved(
+            Long pgTxnId,
+            String failureCode,
+            String failureMessage,
+            int maxAttempts
+    ) {
+        PgPaymentLedger ledger = findLedger(pgTxnId);
+        if (ledger.getStatus() != PgPaymentStatus.REQUESTED) {
+            return Optional.empty();
+        }
+        if (ledger.getRetryCount() + 1 >= maxAttempts) {
+            ledger.markReconciliationRetryExhausted(failureMessage);
+        } else {
+            ledger.markRecoveryRequired(null, failureCode, failureMessage);
+        }
+        return Optional.of(ledger);
     }
 
     private PgPaymentLedger findLedger(Long pgTxnId) {
