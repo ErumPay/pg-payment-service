@@ -29,8 +29,7 @@ public class PgPaymentLedgerWriter {
             Long merchantId,
             Long amount,
             PgTxnType txnType,
-            String cardCompany
-    ) {
+            String cardCompany) {
         PgPaymentLedger ledger = PgPaymentLedger.builder()
                 .originalTxnId(originalTxnId)
                 .payPaymentId(payPaymentId)
@@ -51,8 +50,7 @@ public class PgPaymentLedgerWriter {
             String cardCompany,
             String pgApprovalNumber,
             String cardApprovalNumber,
-            LocalDateTime approvedAt
-    ) {
+            LocalDateTime approvedAt) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         ledger.updateCardCompany(cardCompany);
         ledger.approve(pgApprovalNumber, cardApprovalNumber, approvedAt);
@@ -64,8 +62,7 @@ public class PgPaymentLedgerWriter {
             Long pgTxnId,
             String cardCompany,
             String rejectReason,
-            LocalDateTime processedAt
-    ) {
+            LocalDateTime processedAt) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         ledger.updateCardCompany(cardCompany);
         ledger.reject(rejectReason, processedAt);
@@ -77,8 +74,7 @@ public class PgPaymentLedgerWriter {
             Long pgTxnId,
             String pgApprovalNumber,
             String cardApprovalNumber,
-            LocalDateTime processedAt
-    ) {
+            LocalDateTime processedAt) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         ledger.cancel(pgApprovalNumber, cardApprovalNumber, processedAt);
         return ledger;
@@ -89,8 +85,7 @@ public class PgPaymentLedgerWriter {
             Long pgTxnId,
             String pgApprovalNumber,
             String cardApprovalNumber,
-            LocalDateTime processedAt
-    ) {
+            LocalDateTime processedAt) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         ledger.voidHold(pgApprovalNumber, cardApprovalNumber, processedAt);
         return ledger;
@@ -102,8 +97,7 @@ public class PgPaymentLedgerWriter {
             String cardCompany,
             String failureCode,
             String failureMessage,
-            LocalDateTime processedAt
-    ) {
+            LocalDateTime processedAt) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         if (cardCompany != null && !cardCompany.isBlank()) {
             ledger.updateCardCompany(cardCompany);
@@ -124,8 +118,7 @@ public class PgPaymentLedgerWriter {
             Long pgTxnId,
             String cardCompany,
             String failureCode,
-            String failureMessage
-    ) {
+            String failureMessage) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         ledger.markRecoveryRequired(cardCompany, failureCode, failureMessage);
         return ledger;
@@ -137,13 +130,14 @@ public class PgPaymentLedgerWriter {
             String cardCompany,
             String pgApprovalNumber,
             String cardApprovalNumber,
-            LocalDateTime approvedAt
-    ) {
+            LocalDateTime approvedAt) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         if (ledger.getStatus() != PgPaymentStatus.REQUESTED) {
             return Optional.empty();
         }
-        ledger.updateCardCompany(cardCompany);
+        if (cardCompany != null && !cardCompany.isBlank()) {
+            ledger.updateCardCompany(cardCompany);
+        }
         ledger.approve(pgApprovalNumber, cardApprovalNumber, approvedAt);
         return Optional.of(ledger);
     }
@@ -153,13 +147,14 @@ public class PgPaymentLedgerWriter {
             Long pgTxnId,
             String cardCompany,
             String rejectReason,
-            LocalDateTime processedAt
-    ) {
+            LocalDateTime processedAt) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         if (ledger.getStatus() != PgPaymentStatus.REQUESTED) {
             return Optional.empty();
         }
-        ledger.updateCardCompany(cardCompany);
+        if (cardCompany != null && !cardCompany.isBlank()) {
+            ledger.updateCardCompany(cardCompany);
+        }
         ledger.reject(rejectReason, processedAt);
         return Optional.of(ledger);
     }
@@ -169,8 +164,7 @@ public class PgPaymentLedgerWriter {
             Long pgTxnId,
             String failureCode,
             String failureMessage,
-            int maxAttempts
-    ) {
+            int maxAttempts) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         if (ledger.getStatus() != PgPaymentStatus.REQUESTED) {
             return Optional.empty();
@@ -187,7 +181,6 @@ public class PgPaymentLedgerWriter {
         return pgPaymentLedgerRepository.findById(pgTxnId)
                 .orElseThrow(() -> new PgPaymentException(
                         ErrorCode.PG_PAYMENT_NOT_FOUND,
-                        "PG payment transaction was not found. pgTxnId=" + pgTxnId
-                ));
+                        "PG payment transaction was not found. pgTxnId=" + pgTxnId));
     }
 }
