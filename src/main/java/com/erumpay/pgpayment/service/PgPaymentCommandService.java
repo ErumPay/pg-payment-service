@@ -55,6 +55,8 @@ public class PgPaymentCommandService {
             return PgPaymentResultResponse.from(existing.get());
         }
 
+        System.out.println("=== request = " + request);
+
         PgPaymentLedger ledger = createRequestedOrReturnExisting(
                 null,
                 request.payPaymentId(),
