@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-@FeignClient(name = "card-simulator-service", url = "${pg-payment.clients.card-simulator-service.url:http://localhost:8095}", configuration = CardSimulatorFeignConfig.class)
+@FeignClient(name = "card-simulator-service", url = "${pg-payment.clients.card-simulator-service.url:http://card-simulator-service:8095}", configuration = CardSimulatorFeignConfig.class)
 public interface CardSimulatorClient {
 
         @PostMapping(value = "/api/v1/card-simulator/payment/approve", consumes = APPLICATION_JSON_VALUE)
