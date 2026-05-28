@@ -146,11 +146,11 @@ pipeline {
                         script {
                             def values = readFile(env.INFRA_HELM_VALUES_PATH)
                             values = values.replaceFirst(
-                                    /(?m)^\s*repository:\s*.+$/,
+                                    '(?m)^\\s*repository:\\s*.+$',
                                     "  repository: \"${env.ECR_IMAGE_REPOSITORY}\""
                             )
                             values = values.replaceFirst(
-                                    /(?m)^\s*tag:\s*.+$/,
+                                    '(?m)^\\s*tag:\\s*.+$',
                                     "  tag: \"${env.IMAGE_TAG}\""
                             )
                             writeFile file: env.INFRA_HELM_VALUES_PATH, text: values
