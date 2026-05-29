@@ -12,7 +12,7 @@ pipeline {
         ECR_REPOSITORY = 'erumpay/pg-payment-service'
         AWS_CREDENTIALS_ID = 'aws-erumpay-ecr'
         INFRA_REPOSITORY_URL = 'https://github.com/ErumPay/erumpay-infra.git'
-        INFRA_BRANCH = 'main'
+        INFRA_BRANCH = 'develop'
         INFRA_CREDENTIALS_ID = 'github-erumpay-infra-write'
         INFRA_HELM_VALUES_PATH = 'helm/values/dev/pg-payment-service.yaml'
         GIT_COMMITTER_NAME = 'erumpay-jenkins'
