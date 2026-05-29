@@ -1,0 +1,93 @@
+package com.erumpay.pgpayment.controller;
+
+import com.erumpay.pgpayment.dto.PgPaymentAuthOnlyRequest;
+import com.erumpay.pgpayment.dto.PgPaymentAuthRequest;
+import com.erumpay.pgpayment.dto.PgPaymentCancelRequest;
+import com.erumpay.pgpayment.dto.PgPaymentResultResponse;
+import com.erumpay.pgpayment.dto.PgPaymentVoidRequest;
+import com.erumpay.pgpayment.global.exception.ErrorCode;
+import com.erumpay.pgpayment.global.exception.PgPaymentException;
+import com.erumpay.pgpayment.service.PgPaymentCommandService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@Validated
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/internal/v1/pg")
+public class PgPaymentCommandController {
+
+    private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 64;
+
+    private final PgPaymentCommandService pgPaymentCommandService;
+
+    @PostMapping("/payments")
+    public PgPaymentResultResponse authorize(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody PgPaymentAuthRequest request) {
+        validateAuthorization(authorization);
+        validateIdempotencyKey(idempotencyKey);
+        return pgPaymentCommandService.authorize(request, authorization, idempotencyKey);
+    }
+
+    @PostMapping("/payments/auth-only")
+    public PgPaymentResultResponse authorizeOnly(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody PgPaymentAuthOnlyRequest request) {
+        validateAuthorization(authorization);
+        validateIdempotencyKey(idempotencyKey);
+        return pgPaymentCommandService.authorizeOnly(request, authorization, idempotencyKey);
+    }
+
+    @PostMapping("/payments/{pgTxnId}/cancel")
+    public PgPaymentResultResponse cancel(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @PathVariable @Positive Long pgTxnId,
+            @Valid @RequestBody PgPaymentCancelRequest request) {
+        validateAuthorization(authorization);
+        validateIdempotencyKey(idempotencyKey);
+        return pgPaymentCommandService.cancel(pgTxnId, request, authorization, idempotencyKey);
+    }
+
+    @PostMapping("/payments/{pgTxnId}/void")
+    public PgPaymentResultResponse voidHold(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @PathVariable @Positive Long pgTxnId,
+            @Valid @RequestBody PgPaymentVoidRequest request) {
+        validateAuthorization(authorization);
+        validateIdempotencyKey(idempotencyKey);
+        return pgPaymentCommandService.voidHold(pgTxnId, request, authorization, idempotencyKey);
+    }
+
+    private void validateAuthorization(String authorization) {
+        if (authorization == null || authorization.isBlank() || !authorization.startsWith("Bearer ")) {
+            throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization header must be a Bearer token.");
+        }
+        String token = authorization.substring("Bearer ".length()).trim();
+        if (token.isEmpty()) {
+            throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization header must include a Bearer token.");
+        }
+    }
+
+    private void validateIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "Idempotency-Key header is required.");
+        }
+        if (idempotencyKey.length() > MAX_IDEMPOTENCY_KEY_LENGTH) {
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "Idempotency-Key must be 64 characters or less.");
+        }
+    }
+}

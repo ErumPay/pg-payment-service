@@ -1,0 +1,91 @@
+server:
+  port: 8093
+
+spring:
+  application:
+    name: pgpayment
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3308/pg_payment_db}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:1234}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+pg-payment:
+  pg-id: ${PG_PAYMENT_PG_ID:001}
+  clients:
+    billing-key-service:
+      url: http://billing-key-service:8092
+    card-simulator-service:
+      url: http://card-simulator-service:8095
+  reconciliation:
+    enabled: ${PG_PAYMENT_RECONCILIATION_ENABLED:true}
+    fixed-delay-ms: ${PG_PAYMENT_RECONCILIATION_FIXED_DELAY_MS:60000}
+    initial-delay-ms: ${PG_PAYMENT_RECONCILIATION_INITIAL_DELAY_MS:30000}
+    minimum-age-seconds: ${PG_PAYMENT_RECONCILIATION_MINIMUM_AGE_SECONDS:30}
+    max-attempts: ${PG_PAYMENT_RECONCILIATION_MAX_ATTEMPTS:5}
+    batch-size: ${PG_PAYMENT_RECONCILIATION_BATCH_SIZE:100}
+    authorization: ${PG_PAYMENT_RECONCILIATION_AUTHORIZATION:Bearer local-pg-reconciliation-token}
+
+resilience4j:
+  retry:
+    instances:
+      billingKeyTokenRetrieve:
+        max-attempts: 2
+        wait-duration: 200ms
+        retry-exceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+
+      cardPaymentInquire:
+        max-attempts: 2
+        wait-duration: 300ms
+        retry-exceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+
+      cardPreApprovalInquire:
+        max-attempts: 2
+        wait-duration: 300ms
+        retry-exceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - feign.RetryableException
+          - feign.FeignException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+    instances:
+      billingKeyTokenRetrieve:
+        base-config: default
+      cardPaymentApprove:
+        base-config: default
+      cardPreApprovalRequest:
+        base-config: default
+      cardPaymentCancel:
+        base-config: default
+      cardPreApprovalCancel:
+        base-config: default
+      cardPaymentInquire:
+        base-config: default
+      cardPreApprovalInquire:
+        base-config: default
