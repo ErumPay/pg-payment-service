@@ -1,6 +1,7 @@
 package com.erumpay.pgpayment.service;
 
 import com.erumpay.pgpayment.domain.entity.PgPaymentLedger;
+import com.erumpay.pgpayment.domain.enums.PgFailureCode;
 import com.erumpay.pgpayment.domain.enums.PgPaymentStatus;
 import com.erumpay.pgpayment.domain.enums.PgTxnType;
 import com.erumpay.pgpayment.global.exception.ErrorCode;
@@ -95,7 +96,7 @@ public class PgPaymentLedgerWriter {
     public PgPaymentLedger fail(
             Long pgTxnId,
             String cardCompany,
-            String failureCode,
+            PgFailureCode failureCode,
             String failureMessage,
             LocalDateTime processedAt) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
@@ -117,7 +118,7 @@ public class PgPaymentLedgerWriter {
     public PgPaymentLedger markRecoveryRequired(
             Long pgTxnId,
             String cardCompany,
-            String failureCode,
+            PgFailureCode failureCode,
             String failureMessage) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
         ledger.markRecoveryRequired(cardCompany, failureCode, failureMessage);
@@ -162,7 +163,7 @@ public class PgPaymentLedgerWriter {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Optional<PgPaymentLedger> markReconciliationUnresolved(
             Long pgTxnId,
-            String failureCode,
+            PgFailureCode failureCode,
             String failureMessage,
             int maxAttempts) {
         PgPaymentLedger ledger = findLedger(pgTxnId);
@@ -181,6 +182,6 @@ public class PgPaymentLedgerWriter {
         return pgPaymentLedgerRepository.findById(pgTxnId)
                 .orElseThrow(() -> new PgPaymentException(
                         ErrorCode.PG_PAYMENT_NOT_FOUND,
-                        "PG payment transaction was not found. pgTxnId=" + pgTxnId));
+                        "PG 결제 거래를 찾을 수 없습니다. pgTxnId=" + pgTxnId));
     }
 }

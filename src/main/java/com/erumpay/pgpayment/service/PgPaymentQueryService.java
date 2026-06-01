@@ -102,7 +102,7 @@ public class PgPaymentQueryService {
         return pgPaymentLedgerRepository.findById(pgTxnId)
                 .orElseThrow(() -> new PgPaymentException(
                         ErrorCode.PG_PAYMENT_NOT_FOUND,
-                        "PG payment transaction was not found. pgTxnId=" + pgTxnId
+                        "PG 결제 거래를 찾을 수 없습니다. pgTxnId=" + pgTxnId
                 ));
     }
 
@@ -122,22 +122,22 @@ public class PgPaymentQueryService {
 
     private void validateDateRange(LocalDate from, LocalDate to) {
         if (from != null && to != null && from.isAfter(to)) {
-            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "from must be earlier than or equal to to.");
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "from은 to보다 이전이거나 같아야 합니다.");
         }
     }
 
     private void validateAmountRange(Long minAmount, Long maxAmount) {
         if (minAmount != null && maxAmount != null && minAmount > maxAmount) {
-            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "minAmount must be less than or equal to maxAmount.");
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "minAmount는 maxAmount보다 작거나 같아야 합니다.");
         }
     }
 
     private void validatePage(int page, int size) {
         if (page < 0) {
-            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "page must be greater than or equal to 0.");
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "page는 0 이상이어야 합니다.");
         }
         if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "size must be between 1 and 100.");
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "size는 1 이상 100 이하여야 합니다.");
         }
     }
 }

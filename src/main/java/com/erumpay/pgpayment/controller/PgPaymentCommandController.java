@@ -74,20 +74,20 @@ public class PgPaymentCommandController {
 
     private void validateAuthorization(String authorization) {
         if (authorization == null || authorization.isBlank() || !authorization.startsWith("Bearer ")) {
-            throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization header must be a Bearer token.");
+            throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization 헤더는 Bearer 토큰 형식이어야 합니다.");
         }
         String token = authorization.substring("Bearer ".length()).trim();
         if (token.isEmpty()) {
-            throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization header must include a Bearer token.");
+            throw new PgPaymentException(ErrorCode.UNAUTHORIZED, "Authorization 헤더에 Bearer 토큰 값이 필요합니다.");
         }
     }
 
     private void validateIdempotencyKey(String idempotencyKey) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "Idempotency-Key header is required.");
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "Idempotency-Key 헤더가 필요합니다.");
         }
         if (idempotencyKey.length() > MAX_IDEMPOTENCY_KEY_LENGTH) {
-            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "Idempotency-Key must be 64 characters or less.");
+            throw new PgPaymentException(ErrorCode.INVALID_REQUEST, "Idempotency-Key는 64자 이하여야 합니다.");
         }
     }
 }
