@@ -64,7 +64,7 @@ class PgPaymentReconciliationServiceTest {
         PgPaymentLedger ledger = requestedLedger(
                 10L,
                 PgTxnType.AUTH,
-                PgFailureCode.CARD_RESULT_UNKNOWN.name());
+                PgFailureCode.CARD_RESULT_UNKNOWN.getCode());
         LocalDateTime approvedAt = LocalDateTime.of(2026, 5, 22, 10, 30);
 
         stubTargets(ledger);
@@ -107,7 +107,7 @@ class PgPaymentReconciliationServiceTest {
         PgPaymentLedger ledger = requestedLedger(
                 20L,
                 PgTxnType.AUTH_ONLY,
-                PgFailureCode.CARD_AUTH_ONLY_RESULT_UNKNOWN.name());
+                PgFailureCode.CARD_AUTH_ONLY_RESULT_UNKNOWN.getCode());
 
         stubTargets(ledger);
         when(pgExternalClientGateway.inquirePreApproval(

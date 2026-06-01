@@ -157,33 +157,35 @@ public class PgPaymentLedger {
         this.processedAt = processedAt;
     }
 
-    public void fail(String failureCode, String failureMessage, LocalDateTime processedAt) {
+    public void fail(PgFailureCode failureCode, String failureMessage, LocalDateTime processedAt) {
         this.status = PgPaymentStatus.FAILED;
         this.pgApprovalNumber = null;
         this.cardApprovalNumber = null;
         this.rejectReason = null;
-        this.failureCode = failureCode;
-        this.failureMessage = failureMessage;
+        this.failureCode = failureCode.getCode();
+        this.failureMessage = failureMessage == null ? failureCode.getMessage() : failureMessage;
         this.approvedAt = null;
         this.processedAt = processedAt;
     }
 
     public void markRecoveryRequired(String failureMessage) {
-        markRecoveryRequired(null, PgFailureCode.LEDGER_RECOVERY_REQUIRED.name(), failureMessage);
+        markRecoveryRequired(null, PgFailureCode.LEDGER_RECOVERY_REQUIRED, failureMessage);
     }
 
-    public void markRecoveryRequired(String cardCompany, String failureCode, String failureMessage) {
+    public void markRecoveryRequired(String cardCompany, PgFailureCode failureCode, String failureMessage) {
         if (cardCompany != null && !cardCompany.isBlank()) {
             this.cardCompany = cardCompany;
         }
-        this.failureCode = failureCode;
-        this.failureMessage = failureMessage;
+        this.failureCode = failureCode.getCode();
+        this.failureMessage = failureMessage == null ? failureCode.getMessage() : failureMessage;
         this.retryCount = this.retryCount + 1;
     }
 
     public void markReconciliationRetryExhausted(String failureMessage) {
-        this.failureCode = PgFailureCode.RECONCILIATION_RETRY_EXHAUSTED.name();
-        this.failureMessage = failureMessage;
+        this.failureCode = PgFailureCode.RECONCILIATION_RETRY_EXHAUSTED.getCode();
+        this.failureMessage = failureMessage == null
+                ? PgFailureCode.RECONCILIATION_RETRY_EXHAUSTED.getMessage()
+                : failureMessage;
         this.retryCount = this.retryCount + 1;
     }
 }
