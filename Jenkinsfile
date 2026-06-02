@@ -199,6 +199,16 @@ pipeline {
     post {
         always {
             junit testResults: 'build/test-results/test/*.xml', allowEmptyResults: true
+
+            script {
+                if (isUnix()) {
+                    sh 'docker image prune -af || true'
+                    sh 'docker builder prune -af || true'
+                } else {
+                    bat 'docker image prune -af'
+                    bat 'docker builder prune -af'
+                }
+            }
         }
     }
 }
