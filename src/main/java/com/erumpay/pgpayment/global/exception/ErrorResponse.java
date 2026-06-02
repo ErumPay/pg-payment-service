@@ -1,24 +1,43 @@
 package com.erumpay.pgpayment.global.exception;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ErrorResponse(
         LocalDateTime timestamp,
         int status,
         String error,
         String code,
+        String reason,
         String message,
+        List<ErrorDetail> details,
+        String correlationId,
         String path
 ) {
 
-    public static ErrorResponse of(ErrorCode errorCode, String message, String path) {
+    public static ErrorResponse of(
+            ErrorCode errorCode,
+            String message,
+            String path,
+            List<ErrorDetail> details,
+            String correlationId
+    ) {
         return new ErrorResponse(
                 LocalDateTime.now(),
-                errorCode.getHttpStatus().value(),
-                errorCode.getHttpStatus().getReasonPhrase(),
+                errorCode.getStatus().value(),
+                errorCode.getStatus().name(),
                 errorCode.getCode(),
+                errorCode.getReason(),
                 message == null ? errorCode.getMessage() : message,
+                details == null ? List.of() : details,
+                correlationId,
                 path
         );
+    }
+
+    public record ErrorDetail(
+            String field,
+            String message
+    ) {
     }
 }

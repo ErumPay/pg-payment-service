@@ -1,6 +1,7 @@
 package com.erumpay.pgpayment.dto;
 
 import com.erumpay.pgpayment.domain.entity.PgPaymentLedger;
+import com.erumpay.pgpayment.domain.enums.PgFailureCode;
 import com.erumpay.pgpayment.domain.enums.PgPaymentStatus;
 import com.erumpay.pgpayment.domain.enums.PgTxnType;
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ public record PgPaymentResultResponse(
         String cardApprovalNumber,
         String rejectReason,
         String failureCode,
+        String failureReason,
         String failureMessage,
         LocalDateTime approvedAt,
         LocalDateTime processedAt
@@ -35,9 +37,16 @@ public record PgPaymentResultResponse(
                 ledger.getCardApprovalNumber(),
                 ledger.getRejectReason(),
                 ledger.getFailureCode(),
+                failureReason(ledger.getFailureCode()),
                 ledger.getFailureMessage(),
                 ledger.getApprovedAt(),
                 ledger.getProcessedAt()
         );
+    }
+
+    private static String failureReason(String failureCode) {
+        return PgFailureCode.fromCode(failureCode)
+                .map(PgFailureCode::getReason)
+                .orElse(null);
     }
 }

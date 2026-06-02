@@ -23,9 +23,9 @@ public class PgPaymentReconciliationService {
 
     private static final List<PgTxnType> TARGET_TXN_TYPES = List.of(PgTxnType.AUTH, PgTxnType.AUTH_ONLY);
     private static final List<String> TARGET_FAILURE_CODES = List.of(
-            PgFailureCode.LEDGER_RECOVERY_REQUIRED.name(),
-            PgFailureCode.CARD_RESULT_UNKNOWN.name(),
-            PgFailureCode.CARD_AUTH_ONLY_RESULT_UNKNOWN.name());
+            PgFailureCode.LEDGER_RECOVERY_REQUIRED.getCode(),
+            PgFailureCode.CARD_RESULT_UNKNOWN.getCode(),
+            PgFailureCode.CARD_AUTH_ONLY_RESULT_UNKNOWN.getCode());
     private static final Integer CARD_PAYMENT_APPROVED = 300;
     private static final List<Integer> CARD_PAYMENT_REJECTED = List.of(301, 302, 303);
 
@@ -185,7 +185,7 @@ public class PgPaymentReconciliationService {
         try {
             return pgPaymentLedgerWriter.markReconciliationUnresolved(
                     ledger.getPgTxnId(),
-                    ledger.getFailureCode(),
+                    PgFailureCode.fromCode(ledger.getFailureCode()).orElse(PgFailureCode.LEDGER_RECOVERY_REQUIRED),
                     failureMessage,
                     pgPaymentProperties.getReconciliation().getMaxAttempts())
                     .map(unresolved -> ReconciliationOutcome.UNRESOLVED)
