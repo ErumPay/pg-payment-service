@@ -73,7 +73,7 @@ class PgPaymentReconciliationServiceTest {
                 "001",
                 "SHINHAN",
                 "reconciliation-10")).thenReturn(new PaymentInquireResponse(
-                        300,
+                        "SIM-PAY-300",
                         "SUCCESS",
                         "001",
                         10L,
@@ -115,7 +115,7 @@ class PgPaymentReconciliationServiceTest {
                 "001",
                 "SHINHAN",
                 "reconciliation-20")).thenReturn(new PreApprovalInquireResponse(
-                        302,
+                        "SIM-PAY-302",
                         "PAYMENT_REJECTED",
                         "001",
                         20L,

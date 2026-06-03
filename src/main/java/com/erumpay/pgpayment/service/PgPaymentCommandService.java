@@ -1,6 +1,7 @@
 package com.erumpay.pgpayment.service;
 
 import com.erumpay.pgpayment.client.billingkey.dto.BillingKeyTokenRetrieveResponse;
+import com.erumpay.pgpayment.client.cardsimulator.CardSimulatorResponseCodes;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentApproveRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentApproveResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentCancelRequest;
@@ -867,8 +868,8 @@ public class PgPaymentCommandService {
                 .orElseGet(() -> PgPaymentResultResponse.from(fallbackLedger));
     }
 
-    private boolean isSuccess(Integer responseCode) {
-        return Integer.valueOf(300).equals(responseCode);
+    private boolean isSuccess(String responseCode) {
+        return CardSimulatorResponseCodes.isSuccess(responseCode);
     }
 
     private boolean isReconciliationFailureCode(PgFailureCode failureCode) {
