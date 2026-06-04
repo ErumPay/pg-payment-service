@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record PreApprovalCancelResponse(
         @JsonProperty("response_code")
-        Integer responseCode,
+        String responseCode,
 
         @JsonProperty("response_message")
         String responseMessage,

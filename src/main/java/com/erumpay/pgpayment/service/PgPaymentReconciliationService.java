@@ -1,5 +1,6 @@
 package com.erumpay.pgpayment.service;
 
+import com.erumpay.pgpayment.client.cardsimulator.CardSimulatorResponseCodes;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentInquireResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalInquireResponse;
 import com.erumpay.pgpayment.domain.entity.PgPaymentLedger;
@@ -26,9 +27,6 @@ public class PgPaymentReconciliationService {
             PgFailureCode.LEDGER_RECOVERY_REQUIRED.getCode(),
             PgFailureCode.CARD_RESULT_UNKNOWN.getCode(),
             PgFailureCode.CARD_AUTH_ONLY_RESULT_UNKNOWN.getCode());
-    private static final Integer CARD_PAYMENT_APPROVED = 300;
-    private static final List<Integer> CARD_PAYMENT_REJECTED = List.of(301, 302, 303);
-
     private final PgPaymentLedgerRepository pgPaymentLedgerRepository;
     private final PgPaymentLedgerWriter pgPaymentLedgerWriter;
     private final PgExternalClientGateway pgExternalClientGateway;
@@ -203,23 +201,23 @@ public class PgPaymentReconciliationService {
                 && ledger.getRetryCount() < pgPaymentProperties.getReconciliation().getMaxAttempts();
     }
 
-    private boolean isApproved(Integer responseCode) {
-        return CARD_PAYMENT_APPROVED.equals(responseCode);
+    private boolean isApproved(String responseCode) {
+        return CardSimulatorResponseCodes.isSuccess(responseCode);
     }
 
-    private boolean isRejected(Integer responseCode) {
-        return CARD_PAYMENT_REJECTED.contains(responseCode);
+    private boolean isRejected(String responseCode) {
+        return CardSimulatorResponseCodes.isPaymentRejected(responseCode);
     }
 
     private String reconciliationAuthorization() {
         return pgPaymentProperties.getReconciliation().getAuthorization();
     }
 
-    private String unresolvedPaymentMessage(Integer responseCode) {
+    private String unresolvedPaymentMessage(String responseCode) {
         return "Card payment reconciliation result is unresolved. responseCode=" + responseCode;
     }
 
-    private String unresolvedPreApprovalMessage(Integer responseCode) {
+    private String unresolvedPreApprovalMessage(String responseCode) {
         return "Card pre-approval reconciliation result is unresolved. responseCode=" + responseCode;
     }
 

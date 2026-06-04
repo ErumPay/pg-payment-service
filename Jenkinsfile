@@ -55,9 +55,9 @@ pipeline {
                 script {
                     if (isUnix()) {
                         sh 'chmod +x ./gradlew'
-                        sh './gradlew clean build --no-daemon'
+                        sh './gradlew clean build --no-daemon --max-workers=1'
                     } else {
-                        bat '.\\gradlew.bat clean build --no-daemon'
+                        bat '.\\gradlew.bat clean build --no-daemon --max-workers=1'
                     }
                 }
             }
@@ -75,9 +75,9 @@ pipeline {
                     def imageTag = "${env.IMAGE_NAME}:${env.IMAGE_TAG}"
 
                     if (isUnix()) {
-                        sh "docker build -t ${imageTag} ."
+                        sh "docker build -f Dockerfile.ci -t ${imageTag} ."
                     } else {
-                        bat "docker build -t ${imageTag} ."
+                        bat "docker build -f Dockerfile.ci -t ${imageTag} ."
                     }
                 }
             }
@@ -199,6 +199,16 @@ pipeline {
     post {
         always {
             junit testResults: 'build/test-results/test/*.xml', allowEmptyResults: true
+
+            script {
+                if (isUnix()) {
+                    sh 'docker image prune -af || true'
+                    sh 'docker builder prune -af || true'
+                } else {
+                    bat 'docker image prune -af'
+                    bat 'docker builder prune -af'
+                }
+            }
         }
     }
 }
