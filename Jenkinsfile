@@ -55,9 +55,9 @@ pipeline {
                 script {
                     if (isUnix()) {
                         sh 'chmod +x ./gradlew'
-                        sh './gradlew clean build --no-daemon'
+                        sh './gradlew clean build --no-daemon --max-workers=1'
                     } else {
-                        bat '.\\gradlew.bat clean build --no-daemon'
+                        bat '.\\gradlew.bat clean build --no-daemon --max-workers=1'
                     }
                 }
             }
@@ -75,9 +75,9 @@ pipeline {
                     def imageTag = "${env.IMAGE_NAME}:${env.IMAGE_TAG}"
 
                     if (isUnix()) {
-                        sh "docker build -t ${imageTag} ."
+                        sh "docker build -f Dockerfile.ci -t ${imageTag} ."
                     } else {
-                        bat "docker build -t ${imageTag} ."
+                        bat "docker build -f Dockerfile.ci -t ${imageTag} ."
                     }
                 }
             }
