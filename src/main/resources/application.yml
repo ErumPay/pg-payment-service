@@ -85,6 +85,8 @@ resilience4j:
         base-config: default
       cardPreApprovalCancel:
         base-config: default
+      cardPreApprovalCapture:
+        base-config: default
       cardPaymentInquire:
         base-config: default
       cardPreApprovalInquire:

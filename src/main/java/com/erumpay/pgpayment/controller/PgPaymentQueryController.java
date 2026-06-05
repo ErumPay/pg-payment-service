@@ -6,9 +6,11 @@ import com.erumpay.pgpayment.dto.MerchantPgPaymentLedgerListResponse;
 import com.erumpay.pgpayment.dto.PgPaymentDetailResponse;
 import com.erumpay.pgpayment.dto.PgPaymentLedgerSearchCondition;
 import com.erumpay.pgpayment.dto.PgPaymentResultResponse;
+import com.erumpay.pgpayment.dto.PgSplitPaymentResultResponse;
 import com.erumpay.pgpayment.global.exception.ErrorCode;
 import com.erumpay.pgpayment.global.exception.PgPaymentException;
 import com.erumpay.pgpayment.service.PgPaymentQueryService;
+import com.erumpay.pgpayment.service.PgSplitPaymentService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PgPaymentQueryController {
 
     private final PgPaymentQueryService pgPaymentQueryService;
+    private final PgSplitPaymentService pgSplitPaymentService;
 
     @GetMapping("/payments/{pgTxnId}/result")
     public PgPaymentResultResponse getPaymentResult(
@@ -46,6 +49,22 @@ public class PgPaymentQueryController {
             @PathVariable @Positive Long pgTxnId) {
         validateAuthorization(authorization);
         return pgPaymentQueryService.getPaymentDetail(pgTxnId);
+    }
+
+    @GetMapping("/payments/split/{pgGroupId}/result")
+    public PgSplitPaymentResultResponse getSplitPaymentResult(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @PathVariable @Positive Long pgGroupId) {
+        validateAuthorization(authorization);
+        return pgSplitPaymentService.getSplitPaymentResult(pgGroupId);
+    }
+
+    @GetMapping("/payments/split/{pgGroupId}")
+    public PgSplitPaymentResultResponse getSplitPaymentDetail(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @PathVariable @Positive Long pgGroupId) {
+        validateAuthorization(authorization);
+        return pgSplitPaymentService.getSplitPaymentDetail(pgGroupId);
     }
 
     @GetMapping("/merchants/{merchantId}/payments")

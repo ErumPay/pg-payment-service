@@ -4,10 +4,13 @@ import com.erumpay.pgpayment.dto.PgPaymentAuthOnlyRequest;
 import com.erumpay.pgpayment.dto.PgPaymentAuthRequest;
 import com.erumpay.pgpayment.dto.PgPaymentCancelRequest;
 import com.erumpay.pgpayment.dto.PgPaymentResultResponse;
+import com.erumpay.pgpayment.dto.PgSplitPaymentRequest;
+import com.erumpay.pgpayment.dto.PgSplitPaymentResultResponse;
 import com.erumpay.pgpayment.dto.PgPaymentVoidRequest;
 import com.erumpay.pgpayment.global.exception.ErrorCode;
 import com.erumpay.pgpayment.global.exception.PgPaymentException;
 import com.erumpay.pgpayment.service.PgPaymentCommandService;
+import com.erumpay.pgpayment.service.PgSplitPaymentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,7 @@ public class PgPaymentCommandController {
     private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 64;
 
     private final PgPaymentCommandService pgPaymentCommandService;
+    private final PgSplitPaymentService pgSplitPaymentService;
 
     @PostMapping("/payments")
     public PgPaymentResultResponse authorize(
@@ -70,6 +74,27 @@ public class PgPaymentCommandController {
         validateAuthorization(authorization);
         validateIdempotencyKey(idempotencyKey);
         return pgPaymentCommandService.voidHold(pgTxnId, request, authorization, idempotencyKey);
+    }
+
+    @PostMapping("/payments/split")
+    public PgSplitPaymentResultResponse splitAuthorize(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody PgSplitPaymentRequest request) {
+        validateAuthorization(authorization);
+        validateIdempotencyKey(idempotencyKey);
+        return pgSplitPaymentService.splitAuthorize(request, authorization, idempotencyKey);
+    }
+
+    @PostMapping("/payments/split/{pgGroupId}/cancel")
+    public PgSplitPaymentResultResponse cancelSplitPayment(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @PathVariable @Positive Long pgGroupId,
+            @Valid @RequestBody PgPaymentCancelRequest request) {
+        validateAuthorization(authorization);
+        validateIdempotencyKey(idempotencyKey);
+        return pgSplitPaymentService.cancelSplitPayment(pgGroupId, request, authorization, idempotencyKey);
     }
 
     private void validateAuthorization(String authorization) {
