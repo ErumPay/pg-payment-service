@@ -87,7 +87,7 @@ public class PgPaymentReconciliationService {
         return switch (ledger.getTxnType()) {
             case AUTH -> reconcilePaymentAuthorization(ledger);
             case AUTH_ONLY -> reconcilePreApproval(ledger);
-            case CANCEL, VOID -> ReconciliationOutcome.SKIPPED;
+            case CAPTURE, CANCEL, VOID -> ReconciliationOutcome.SKIPPED;
         };
     }
 

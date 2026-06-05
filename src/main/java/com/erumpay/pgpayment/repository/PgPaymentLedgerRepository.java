@@ -30,6 +30,19 @@ public interface PgPaymentLedgerRepository extends JpaRepository<PgPaymentLedger
 
     Page<PgPaymentLedger> findByMerchantId(Long merchantId, Pageable pageable);
 
+    List<PgPaymentLedger> findByPgGroupIdOrderBySplitSeqAscPgTxnIdAsc(Long pgGroupId);
+
+    List<PgPaymentLedger> findByPgGroupIdAndTxnTypeOrderBySplitSeqAscPgTxnIdAsc(
+            Long pgGroupId,
+            PgTxnType txnType
+    );
+
+    List<PgPaymentLedger> findByPgGroupIdAndTxnTypeAndStatusOrderBySplitSeqAscPgTxnIdAsc(
+            Long pgGroupId,
+            PgTxnType txnType,
+            PgPaymentStatus status
+    );
+
     @Query("""
             select ledger
             from PgPaymentLedger ledger

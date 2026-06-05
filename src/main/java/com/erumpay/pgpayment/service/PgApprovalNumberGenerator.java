@@ -14,6 +14,7 @@ public class PgApprovalNumberGenerator {
         String prefix = switch (txnType) {
             case AUTH -> "PG";
             case AUTH_ONLY -> "PGAUTH";
+            case CAPTURE -> "PGCAP";
             case CANCEL -> "PGC";
             case VOID -> "PGV";
         };

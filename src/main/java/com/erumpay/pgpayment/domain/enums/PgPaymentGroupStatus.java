@@ -1,14 +1,16 @@
 package com.erumpay.pgpayment.domain.enums;
 
-public enum PgPaymentStatus {
+public enum PgPaymentGroupStatus {
     REQUESTED,
+    HOLDING,
     HELD,
+    CAPTURING,
     APPROVED,
-    CAPTURED,
     REJECTED,
     FAILED,
+    VOIDING,
+    CANCELLING,
     CANCELLED,
-    VOIDED,
     RECOVERY_REQUIRED,
     COMPENSATION_REQUIRED
 }
