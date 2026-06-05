@@ -12,6 +12,8 @@ import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentInquireRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentInquireResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCancelRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCancelResponse;
+import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCaptureRequest;
+import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCaptureResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalInquireRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalInquireResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalRequest;
@@ -68,6 +70,15 @@ public class PgExternalClientGateway {
             PreApprovalCancelRequest request
     ) {
         return cardSimulatorClient.cancelPreApproval(authorization, idempotencyKey, request);
+    }
+
+    @CircuitBreaker(name = "cardPreApprovalCapture")
+    public PreApprovalCaptureResponse capturePreApproval(
+            String authorization,
+            String idempotencyKey,
+            PreApprovalCaptureRequest request
+    ) {
+        return cardSimulatorClient.capturePreApproval(authorization, idempotencyKey, request);
     }
 
     @CircuitBreaker(name = "cardPaymentInquire")

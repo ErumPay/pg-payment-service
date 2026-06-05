@@ -16,6 +16,8 @@ public enum PgFailureCode {
     CARD_AUTH_ONLY_FAILED("PG-CARD-403", "CARD_AUTH_ONLY_FAILED", "카드사 가승인 요청에 실패했습니다."),
     CARD_AUTH_ONLY_RESULT_UNKNOWN("PG-CARD-404", "CARD_AUTH_ONLY_RESULT_UNKNOWN", "카드사 가승인 결과를 확인할 수 없습니다."),
     CARD_TIMEOUT_UNCONFIRMED("PG-CARD-405", "CARD_TIMEOUT_UNCONFIRMED", "카드사 응답 지연으로 거래 결과를 확정하지 못했습니다."),
+    CARD_CAPTURE_FAILED("PG-CARD-407", "CARD_CAPTURE_FAILED", "카드사 매입 요청에 실패했습니다."),
+    CARD_CAPTURE_RESULT_UNKNOWN("PG-CARD-408", "CARD_CAPTURE_RESULT_UNKNOWN", "카드사 매입 결과를 확인할 수 없습니다."),
     CARD_CANCEL_FAILED("PG-CMP-400", "CARD_CANCEL_FAILED", "카드사 결제 취소 요청에 실패했습니다."),
     CARD_CANCEL_RESULT_UNKNOWN("PG-CMP-401", "CARD_CANCEL_RESULT_UNKNOWN", "카드사 결제 취소 결과를 확인할 수 없습니다."),
     CARD_VOID_FAILED("PG-CMP-402", "CARD_VOID_FAILED", "카드사 가승인 해제 요청에 실패했습니다."),

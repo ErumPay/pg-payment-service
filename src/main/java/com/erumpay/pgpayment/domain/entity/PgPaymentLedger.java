@@ -31,6 +31,8 @@ import org.hibernate.annotations.UpdateTimestamp;
         @UniqueConstraint(name = "uk_pg_payment_ledger_idempotency", columnNames = "idempotency_key")
 }, indexes = {
         @Index(name = "idx_pg_payment_ledger_pay_payment", columnList = "pay_payment_id"),
+        @Index(name = "idx_pg_payment_ledger_group", columnList = "pg_group_id"),
+        @Index(name = "idx_pg_payment_ledger_group_split", columnList = "pg_group_id, split_seq"),
         @Index(name = "idx_pg_payment_ledger_original", columnList = "original_txn_id"),
         @Index(name = "idx_pg_payment_ledger_hold", columnList = "hold_txn_id"),
         @Index(name = "idx_pg_payment_ledger_merchant_created", columnList = "merchant_id, created_at"),
@@ -42,6 +44,12 @@ public class PgPaymentLedger {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pg_txn_id")
     private Long pgTxnId;
+
+    @Column(name = "pg_group_id")
+    private Long pgGroupId;
+
+    @Column(name = "split_seq")
+    private Integer splitSeq;
 
     @Column(name = "original_txn_id")
     private Long originalTxnId;
@@ -65,12 +73,12 @@ public class PgPaymentLedger {
     private Long amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "txn_type", nullable = false, columnDefinition = "ENUM('AUTH','AUTH_ONLY','VOID','CANCEL')")
+    @Column(name = "txn_type", nullable = false, columnDefinition = "ENUM('AUTH','AUTH_ONLY','CAPTURE','VOID','CANCEL')")
     private PgTxnType txnType;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "ENUM('REQUESTED','APPROVED','REJECTED','FAILED','CANCELLED','VOIDED')")
+    @Column(name = "status", nullable = false, columnDefinition = "ENUM('REQUESTED','HELD','APPROVED','CAPTURED','REJECTED','FAILED','CANCELLED','VOIDED','RECOVERY_REQUIRED','COMPENSATION_REQUIRED')")
     private PgPaymentStatus status = PgPaymentStatus.REQUESTED;
 
     @Column(name = "pg_approval_number", length = 50)
@@ -113,6 +121,10 @@ public class PgPaymentLedger {
         this.cardCompany = cardCompany;
     }
 
+    public void updateIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
+
     public void approve(String pgApprovalNumber, String cardApprovalNumber, LocalDateTime approvedAt) {
         this.status = PgPaymentStatus.APPROVED;
         this.pgApprovalNumber = pgApprovalNumber;
@@ -122,6 +134,28 @@ public class PgPaymentLedger {
         this.failureMessage = null;
         this.approvedAt = approvedAt;
         this.processedAt = approvedAt;
+    }
+
+    public void hold(String pgApprovalNumber, String cardApprovalNumber, LocalDateTime approvedAt) {
+        this.status = PgPaymentStatus.HELD;
+        this.pgApprovalNumber = pgApprovalNumber;
+        this.cardApprovalNumber = cardApprovalNumber;
+        this.rejectReason = null;
+        this.failureCode = null;
+        this.failureMessage = null;
+        this.approvedAt = approvedAt;
+        this.processedAt = approvedAt;
+    }
+
+    public void capture(String pgApprovalNumber, String cardApprovalNumber, LocalDateTime processedAt) {
+        this.status = PgPaymentStatus.CAPTURED;
+        this.pgApprovalNumber = pgApprovalNumber;
+        this.cardApprovalNumber = cardApprovalNumber;
+        this.rejectReason = null;
+        this.failureCode = null;
+        this.failureMessage = null;
+        this.approvedAt = null;
+        this.processedAt = processedAt;
     }
 
     public void reject(String rejectReason, LocalDateTime processedAt) {
@@ -176,6 +210,13 @@ public class PgPaymentLedger {
         if (cardCompany != null && !cardCompany.isBlank()) {
             this.cardCompany = cardCompany;
         }
+        this.failureCode = failureCode.getCode();
+        this.failureMessage = failureMessage == null ? failureCode.getMessage() : failureMessage;
+        this.retryCount = this.retryCount + 1;
+    }
+
+    public void markCompensationRequired(PgFailureCode failureCode, String failureMessage) {
+        this.status = PgPaymentStatus.COMPENSATION_REQUIRED;
         this.failureCode = failureCode.getCode();
         this.failureMessage = failureMessage == null ? failureCode.getMessage() : failureMessage;
         this.retryCount = this.retryCount + 1;

@@ -8,6 +8,8 @@ import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentInquireRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentInquireResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCancelRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCancelResponse;
+import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCaptureRequest;
+import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCaptureResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalInquireRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalInquireResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalRequest;
@@ -52,6 +54,12 @@ public interface CardSimulatorClient {
                         @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
                         @RequestHeader("Idempotency-Key") String idempotencyKey,
                         @RequestBody PreApprovalCancelRequest request);
+
+        @PostMapping(value = "/api/v1/card-simulator/pre-approval/capture", consumes = APPLICATION_JSON_VALUE)
+        PreApprovalCaptureResponse capturePreApproval(
+                        @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
+                        @RequestHeader("Idempotency-Key") String idempotencyKey,
+                        @RequestBody PreApprovalCaptureRequest request);
 
         @PostMapping(value = "/api/v1/card-simulator/pre-approval/inquire", consumes = APPLICATION_JSON_VALUE)
         PreApprovalInquireResponse inquirePreApproval(

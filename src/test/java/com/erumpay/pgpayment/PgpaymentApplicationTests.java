@@ -1,6 +1,7 @@
 package com.erumpay.pgpayment;
 
 import com.erumpay.pgpayment.repository.PgPaymentLedgerRepository;
+import com.erumpay.pgpayment.repository.PgPaymentGroupRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -15,6 +16,9 @@ class PgpaymentApplicationTests {
 
 	@MockitoBean
 	private PgPaymentLedgerRepository pgPaymentLedgerRepository;
+
+	@MockitoBean
+	private PgPaymentGroupRepository pgPaymentGroupRepository;
 
 	@Test
 	void contextLoads() {

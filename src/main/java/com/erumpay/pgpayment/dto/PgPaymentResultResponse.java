@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 
 public record PgPaymentResultResponse(
         Long pgTxnId,
+        Long pgGroupId,
+        Integer splitSeq,
         Long originalTxnId,
         Long payPaymentId,
         Long merchantId,
@@ -27,6 +29,8 @@ public record PgPaymentResultResponse(
     public static PgPaymentResultResponse from(PgPaymentLedger ledger) {
         return new PgPaymentResultResponse(
                 ledger.getPgTxnId(),
+                ledger.getPgGroupId(),
+                ledger.getSplitSeq(),
                 ledger.getOriginalTxnId(),
                 ledger.getPayPaymentId(),
                 ledger.getMerchantId(),
