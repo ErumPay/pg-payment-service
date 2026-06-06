@@ -55,9 +55,9 @@ pipeline {
                 script {
                     if (isUnix()) {
                         sh 'chmod +x ./gradlew'
-                        sh './gradlew clean build --no-daemon --max-workers=1'
+                        sh './gradlew test bootJar --no-daemon --max-workers=1 --build-cache'
                     } else {
-                        bat '.\\gradlew.bat clean build --no-daemon --max-workers=1'
+                        bat '.\\gradlew.bat test bootJar --no-daemon --max-workers=1 --build-cache'
                     }
                 }
             }
@@ -202,11 +202,11 @@ pipeline {
 
             script {
                 if (isUnix()) {
-                    sh 'docker image prune -af || true'
-                    sh 'docker builder prune -af || true'
+                    sh 'docker image prune -f --filter "until=24h" || true'
+                    sh 'docker builder prune -f --filter "until=24h" || true'
                 } else {
-                    bat 'docker image prune -af'
-                    bat 'docker builder prune -af'
+                    bat 'docker image prune -f --filter "until=24h"'
+                    bat 'docker builder prune -f --filter "until=24h"'
                 }
             }
         }
