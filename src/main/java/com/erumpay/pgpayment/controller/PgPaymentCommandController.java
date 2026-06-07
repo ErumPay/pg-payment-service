@@ -3,6 +3,7 @@ package com.erumpay.pgpayment.controller;
 import com.erumpay.pgpayment.dto.PgPaymentAuthOnlyRequest;
 import com.erumpay.pgpayment.dto.PgPaymentAuthRequest;
 import com.erumpay.pgpayment.dto.PgPaymentCancelRequest;
+import com.erumpay.pgpayment.dto.PgPaymentCaptureRequest;
 import com.erumpay.pgpayment.dto.PgPaymentResultResponse;
 import com.erumpay.pgpayment.dto.PgSplitPaymentRequest;
 import com.erumpay.pgpayment.dto.PgSplitPaymentResultResponse;
@@ -74,6 +75,17 @@ public class PgPaymentCommandController {
         validateAuthorization(authorization);
         validateIdempotencyKey(idempotencyKey);
         return pgPaymentCommandService.voidHold(pgTxnId, request, authorization, idempotencyKey);
+    }
+
+    @PostMapping("/payments/{pgTxnId}/capture")
+    public PgPaymentResultResponse captureHold(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @PathVariable @Positive Long pgTxnId,
+            @Valid @RequestBody PgPaymentCaptureRequest request) {
+        validateAuthorization(authorization);
+        validateIdempotencyKey(idempotencyKey);
+        return pgPaymentCommandService.captureHold(pgTxnId, request, authorization, idempotencyKey);
     }
 
     @PostMapping("/payments/split")
