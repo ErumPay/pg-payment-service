@@ -93,6 +93,17 @@ public class PgPaymentLedgerWriter {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public PgPaymentLedger capture(
+            Long pgTxnId,
+            String pgApprovalNumber,
+            String cardApprovalNumber,
+            LocalDateTime processedAt) {
+        PgPaymentLedger ledger = findLedger(pgTxnId);
+        ledger.capture(pgApprovalNumber, cardApprovalNumber, processedAt);
+        return ledger;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PgPaymentLedger fail(
             Long pgTxnId,
             String cardCompany,

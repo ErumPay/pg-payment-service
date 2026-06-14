@@ -9,6 +9,8 @@ import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentCancelResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PaymentInquireResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCancelRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCancelResponse;
+import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCaptureRequest;
+import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalCaptureResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalInquireResponse;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalRequest;
 import com.erumpay.pgpayment.client.cardsimulator.dto.PreApprovalResponse;
@@ -19,6 +21,7 @@ import com.erumpay.pgpayment.domain.enums.PgTxnType;
 import com.erumpay.pgpayment.dto.PgPaymentAuthOnlyRequest;
 import com.erumpay.pgpayment.dto.PgPaymentAuthRequest;
 import com.erumpay.pgpayment.dto.PgPaymentCancelRequest;
+import com.erumpay.pgpayment.dto.PgPaymentCaptureRequest;
 import com.erumpay.pgpayment.dto.PgPaymentResultResponse;
 import com.erumpay.pgpayment.dto.PgPaymentVoidRequest;
 import com.erumpay.pgpayment.global.config.PgPaymentProperties;
@@ -335,6 +338,81 @@ public class PgPaymentCommandService {
         }
     }
 
+    public PgPaymentResultResponse captureHold(
+            Long originalPgTxnId,
+            PgPaymentCaptureRequest request,
+            String authorization,
+            String idempotencyKey) {
+        Optional<PgPaymentLedger> existing = pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey);
+        if (existing.isPresent()) {
+            return PgPaymentResultResponse.from(existing.get());
+        }
+
+        PgPaymentLedger original = findOriginalForCapture(originalPgTxnId, request);
+        PgPaymentLedger ledger = createRequestedOrReturnExisting(
+                original.getPgTxnId(),
+                request.payPaymentId(),
+                null,
+                idempotencyKey,
+                original.getBillingKey(),
+                request.merchantId(),
+                original.getAmount(),
+                PgTxnType.CAPTURE,
+                original.getCardCompany()).orElse(null);
+        if (ledger == null) {
+            return PgPaymentResultResponse.from(pgPaymentLedgerRepository.findByIdempotencyKey(idempotencyKey)
+                    .orElseThrow(() -> new PgPaymentException(ErrorCode.LEDGER_SAVE_FAILED)));
+        }
+
+        BillingKeyTokenRetrieveResponse token;
+        try {
+            token = retrieveCardTokenOrFail(ledger, original.getBillingKey());
+        } catch (CallNotPermittedException exception) {
+            return failBillingKeyCircuitOpen(ledger);
+        }
+        if (token == null) {
+            return failAndReturn(
+                    ledger,
+                    null,
+                    PgFailureCode.BILLING_KEY_LOOKUP_FAILED,
+                    null);
+        }
+
+        PreApprovalCaptureRequest cardRequest = new PreApprovalCaptureRequest(
+                pgPaymentProperties.getPgId(),
+                original.getIdempotencyKey(),
+                ledger.getPgTxnId(),
+                original.getPgTxnId(),
+                token.cardCompany(),
+                token.cardToken(),
+                original.getCardApprovalNumber());
+
+        try {
+            PreApprovalCaptureResponse response = pgExternalClientGateway.capturePreApproval(
+                    authorization,
+                    idempotencyKey,
+                    cardRequest);
+            return applyPreApprovalCaptureResponse(ledger, authorization, token.cardCompany(), response);
+        } catch (CallNotPermittedException exception) {
+            log.warn("Card pre-approval capture circuit is open. pgTxnId={}", ledger.getPgTxnId(), exception);
+            return failCardCircuitOpen(ledger, token.cardCompany());
+        } catch (RetryableException exception) {
+            log.warn("Card pre-approval capture timed out. pgTxnId={}", ledger.getPgTxnId(), exception);
+            return markRecoveryOrFail(
+                    ledger,
+                    token.cardCompany(),
+                    PgFailureCode.CARD_CAPTURE_RESULT_UNKNOWN,
+                    PgFailureCode.CARD_CAPTURE_RESULT_UNKNOWN.getMessage());
+        } catch (RuntimeException exception) {
+            log.warn("Card pre-approval capture request failed. pgTxnId={}", ledger.getPgTxnId(), exception);
+            return failAndReturn(
+                    ledger,
+                    token.cardCompany(),
+                    PgFailureCode.CARD_CAPTURE_FAILED,
+                    null);
+        }
+    }
+
     private PgPaymentResultResponse applyPaymentApproveResponse(
             PgPaymentLedger ledger,
             String authorization,
@@ -408,6 +486,25 @@ public class PgPaymentCommandService {
                 cardCompany,
                 pgApprovalNumber,
                 response.preApprovalNumber(),
+                processedAt);
+    }
+
+    private PgPaymentResultResponse applyPreApprovalCaptureResponse(
+            PgPaymentLedger ledger,
+            String authorization,
+            String cardCompany,
+            PreApprovalCaptureResponse response) {
+        if (!isSuccess(response.responseCode())) {
+            return failAndReturn(ledger, cardCompany, PgFailureCode.CARD_CAPTURE_FAILED, response.responseMessage());
+        }
+        String pgApprovalNumber = pgApprovalNumberGenerator.generate(PgTxnType.CAPTURE, ledger.getPgTxnId());
+        LocalDateTime processedAt = cardSimulatorDateTimeParser.parseOrNow(response.approvedAt());
+        return captureWithRecovery(
+                ledger,
+                authorization,
+                cardCompany,
+                pgApprovalNumber,
+                response.approvalNumber(),
                 processedAt);
     }
 
@@ -506,6 +603,30 @@ public class PgPaymentCommandService {
                     authorization,
                     cardCompany,
                     PgFailureCode.LEDGER_RECOVERY_REQUIRED);
+        }
+    }
+
+    private PgPaymentResultResponse captureWithRecovery(
+            PgPaymentLedger ledger,
+            String authorization,
+            String cardCompany,
+            String pgApprovalNumber,
+            String cardApprovalNumber,
+            LocalDateTime processedAt) {
+        try {
+            PgPaymentLedger captured = pgPaymentLedgerWriter.capture(
+                    ledger.getPgTxnId(),
+                    pgApprovalNumber,
+                    cardApprovalNumber,
+                    processedAt);
+            return PgPaymentResultResponse.from(captured);
+        } catch (RuntimeException exception) {
+            log.error("Failed to save CAPTURED ledger. pgTxnId={}", ledger.getPgTxnId(), exception);
+            return markRecoveryOrFail(
+                    ledger,
+                    cardCompany,
+                    PgFailureCode.LEDGER_RECOVERY_REQUIRED,
+                    "카드사 가승인 매입은 완료되었지만 PG 원장 매입 상태 저장에 실패했습니다.");
         }
     }
 
@@ -843,6 +964,23 @@ public class PgPaymentCommandService {
                 PgTxnType.VOID,
                 PgPaymentStatus.VOIDED)) {
             throw new PgPaymentException(ErrorCode.AUTH_ONLY_ALREADY_VOIDED, "이미 해제된 가승인 거래입니다.");
+        }
+        return original;
+    }
+
+    private PgPaymentLedger findOriginalForCapture(Long originalPgTxnId, PgPaymentCaptureRequest request) {
+        PgPaymentLedger original = findOriginal(originalPgTxnId);
+        if (original.getTxnType() != PgTxnType.AUTH_ONLY || original.getStatus() != PgPaymentStatus.APPROVED) {
+            throw new PgPaymentException(
+                    ErrorCode.INVALID_TRANSACTION_STATE,
+                    "APPROVED 상태의 AUTH_ONLY 거래만 매입할 수 있습니다.");
+        }
+        validateOriginalRequest(original, request.payPaymentId(), request.merchantId());
+        if (pgPaymentLedgerRepository.existsByOriginalTxnIdAndTxnTypeAndStatus(
+                originalPgTxnId,
+                PgTxnType.CAPTURE,
+                PgPaymentStatus.CAPTURED)) {
+            throw new PgPaymentException(ErrorCode.INVALID_TRANSACTION_STATE, "이미 매입된 가승인 거래입니다.");
         }
         return original;
     }
