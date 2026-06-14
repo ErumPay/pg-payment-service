@@ -13,5 +13,4 @@ public class PgpaymentApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(PgpaymentApplication.class, args);
 	}
-
 }
